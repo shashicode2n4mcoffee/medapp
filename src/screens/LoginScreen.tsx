@@ -6,6 +6,9 @@ import { Colors } from '../theme/Colors';
 import InputField from '../components/InputField';
 import Button from '../components/Button';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { loginUser } from '../redux/slices/authSlice';
+import { useAppDispatch, useAppSelector } from '../redux/store';
+
 
 type LoginScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Login'>;
@@ -18,6 +21,10 @@ const LoginScreen = ({ navigation }: LoginScreenProps) => {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { error, user } = useAppSelector(state => state.auth);
+
+
+  const dispatch = useAppDispatch();
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -41,12 +48,19 @@ const LoginScreen = ({ navigation }: LoginScreenProps) => {
 
     if (!emailValidationError && !passwordValidationError) {
       setLoading(true);
-      // Simulate API call
-      setTimeout(() => {
-        setLoading(false);
-        // Navigate to HomeScreen after successful login
-        navigation.replace('Home');
-      }, 1500);
+      
+      // Dispatch login action with actual form values
+      dispatch(loginUser({ email, password }))
+        .unwrap()
+        .then(() => {
+          setLoading(false);
+          // Navigate to HomeScreen after successful login
+          navigation.replace('Home');
+        })
+        .catch(() => {
+          // Error is already handled in the slice
+          setLoading(false);
+        });
     }
   };
 
