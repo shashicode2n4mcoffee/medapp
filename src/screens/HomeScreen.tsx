@@ -23,6 +23,11 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
     setRecognizedText(text);
   };
   
+  const handleSubmit = (text: string) => {
+    console.log('Submitted text:', text);
+    // Handle the submitted text here
+  };
+  
   return (
     <SafeAreaView 
       style={[
@@ -55,28 +60,9 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
             </Text>
             <SpeechToText 
               onSpeechResult={handleSpeechResult}
+              onSubmit={handleSubmit}
               placeholder="Tap the microphone and start speaking"
             />
-            
-            {recognizedText ? (
-              <View style={[
-                styles.transcriptContainer,
-                { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }
-              ]}>
-                <Text style={[
-                  styles.transcriptTitle,
-                  { color: isDarkMode ? Colors.textLight : Colors.textPrimary }
-                ]}>
-                  Transcript:
-                </Text>
-                <Text style={[
-                  styles.transcriptText,
-                  { color: isDarkMode ? Colors.textLight : Colors.textPrimary }
-                ]}>
-                  {recognizedText}
-                </Text>
-              </View>
-            ) : null}
           </View>
 
           <Button
@@ -122,21 +108,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 16,
     textAlign: 'center',
-  },
-  transcriptContainer: {
-    padding: 16,
-    borderRadius: 8,
-    marginTop: 16,
-    width: '100%',
-  },
-  transcriptTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  transcriptText: {
-    fontSize: 16,
-    lineHeight: 24,
   },
   logoutButton: {
     width: 200,
