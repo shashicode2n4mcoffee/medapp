@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import axiosInstance from '../../axios';
 
 // Define types for our state
 interface User {
@@ -22,31 +23,54 @@ const initialState: AuthState = {
   error: null,
 };
 
-// Create login thunk action with dummy response
+// Create login thunk action with axios
 export const loginUser = createAsyncThunk(
   'auth/login',
   async ({ email, password }: { email: string; password: string }, { rejectWithValue }) => {
     try {
-      // Simulating API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // For development/testing - use dummy response if it matches test credentials
+    //   if (email === 't@t.com' && password === 'ttttttt') {
+    //     // Simulate API delay
+    //     await new Promise(resolve => setTimeout(resolve, 1000));
+        
+    //     // Return dummy successful response
+    //     return {
+    //       user: {
+    //         id: '1',
+    //         email: 't@t.com',
+    //         name: 'Test User',
+    //       },
+    //       token: 'dummy-jwt-token-12345',
+    //     };
+    //   }
       
-      // Dummy validation
-      if (email === 't@t.com' && password === 'ttttttt') {
-        // Return dummy successful response
-        return {
-          user: {
-            id: '1',
-            email: 't@t.com',
-            name: 'Test User',
-          },
-          token: 'dummy-jwt-token-12345',
-        };
-      } else {
-        // Simulate failed login
-        return rejectWithValue('Invalid email or password');
+      // Real API call using axios
+      const response = await axiosInstance.post('/api/auth/login', { 
+        email, 
+        password 
+      });
+      
+      // Process the API response
+      return {
+        user: response.data.user,
+        token: response.data.token || response.data.accessToken,
+      };
+    } catch (error: any) {
+      // Enhanced error handling
+      if (error.response) {
+        // The request was made and the server responded with an error status
+        return rejectWithValue(
+          error.response.data?.message || 
+          error.response.data?.error || 
+          `Login failed with status: ${error.response.status}`
+        );
+      } else if (error.request) {
+        // The request was made but no response was received
+        return rejectWithValue('Network error: No response from server');
       }
-    } catch (error) {
-      return rejectWithValue('An error occurred while logging in');
+      
+      // Something else caused the error
+      return rejectWithValue(error.message || 'An unknown error occurred during login');
     }
   }
 );
