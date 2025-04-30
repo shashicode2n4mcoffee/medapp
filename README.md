@@ -1,4 +1,21 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# AIApp
+
+This is a [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+
+# Environment Setup
+
+This project uses a single `.env` file to manage environment variables across all environments (development, staging, production).
+
+## Setting up environment variables
+
+1. Copy the example environment file:
+   ```sh
+   cp .env.example .env
+   ```
+
+2. Edit the `.env` file with your specific configuration values.
+
+3. The app will automatically use the environment variables based on the `ENVIRONMENT` setting in the `.env` file.
 
 # Getting Started
 

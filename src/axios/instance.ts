@@ -1,9 +1,10 @@
 import axios from 'axios';
+import env from '../environment';
 
 /**
  * Base API configuration for the application
  */
-const baseURL = 'https://api.example.com'; // Replace with your actual API URL
+const baseURL = env.API_BASE_URL; // Get base URL from environment config
 
 /**
  * Create an axios instance with custom configuration
@@ -21,7 +22,7 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   (config) => {
     // Extract and log the full URL
-    const url = config.baseURL + config.url;
+    const url = (config.baseURL || '') + (config.url || '');
     console.log('🔗 API Request URL:', url);
     
     // Log the request payload if it exists
