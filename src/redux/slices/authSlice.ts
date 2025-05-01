@@ -28,24 +28,6 @@ export const loginUser = createAsyncThunk(
   'auth/login',
   async ({ email, password }: { email: string; password: string }, { rejectWithValue }) => {
     try {
-      // For development/testing - use dummy response if it matches test credentials
-    //   if (email === 't@t.com' && password === 'ttttttt') {
-    //     // Simulate API delay
-    //     await new Promise(resolve => setTimeout(resolve, 1000));
-        
-    //     // Return dummy successful response
-    //     return {
-    //       user: {
-    //         id: '1',
-    //         email: 't@t.com',
-    //         name: 'Test User',
-    //       },
-    //       token: 'dummy-jwt-token-12345',
-    //     };
-    //   }
-      
-      // Real API call using axios
-      debugger; // This will pause execution when Chrome DevTools is open
       const response = await axiosInstance.post('/auth/login', { 
         email, 
         password 
