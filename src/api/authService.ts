@@ -1,4 +1,5 @@
 import apiClient, { ApiResponse } from './apiClient';
+import { AUTH } from '../utils/apiEndpoints';
 
 // Define types for the API response
 interface EmrSystemDetails {
@@ -50,7 +51,7 @@ class AuthService {
    * @returns Promise with login response containing user data
    */
   async login(email: string, password: string): Promise<ApiResponse<LoginResponse>> {
-    const response = await apiClient.post<any>('/api/V2/account/auth/login', { email, password });
+    const response = await apiClient.post<any>(AUTH.LOGIN, { email, password });
     
     if (response.success && response.data) {
       // The API response data already contains the user information
@@ -73,7 +74,7 @@ class AuthService {
    * @returns Promise with registration response
    */
   async register(userData: { email: string; password: string; name: string }): Promise<ApiResponse<LoginResponse>> {
-    return apiClient.post<LoginResponse>('/auth/register', userData);
+    return apiClient.post<LoginResponse>(AUTH.REGISTER, userData);
   }
 
   /**
@@ -82,7 +83,7 @@ class AuthService {
    * @returns Promise with response
    */
   async forgotPassword(email: string): Promise<ApiResponse> {
-    return apiClient.post('/auth/forgot-password', { email });
+    return apiClient.post(AUTH.FORGOT_PASSWORD, { email });
   }
 
   /**
@@ -92,7 +93,7 @@ class AuthService {
    * @returns Promise with response
    */
   async resetPassword(token: string, newPassword: string): Promise<ApiResponse> {
-    return apiClient.post('/auth/reset-password', { token, password: newPassword });
+    return apiClient.post(AUTH.RESET_PASSWORD, { token, password: newPassword });
   }
 
   /**
@@ -100,7 +101,7 @@ class AuthService {
    * @returns Promise with response
    */
   async logout(): Promise<ApiResponse> {
-    return apiClient.post('/auth/logout');
+    return apiClient.post(AUTH.LOGOUT);
   }
 
   /**
@@ -108,7 +109,7 @@ class AuthService {
    * @returns Promise with user data
    */
   async getCurrentUser(): Promise<ApiResponse<User>> {
-    return apiClient.get<User>('/auth/me');
+    return apiClient.get<User>(AUTH.CURRENT_USER);
   }
 }
 
