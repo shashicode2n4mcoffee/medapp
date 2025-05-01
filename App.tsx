@@ -10,6 +10,7 @@ import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-c
 import AppNavigator from './src/navigation/AppNavigator';
 import { Colors } from './src/theme/Colors';
 import { setupInterceptors } from './src/axios';
+import { APP } from './src/utils/literals/appliterals';
 
 function App(): React.JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';

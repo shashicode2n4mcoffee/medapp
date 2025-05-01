@@ -1,5 +1,5 @@
 import apiClient, { ApiResponse } from './apiClient';
-import { AUTH } from '../utils/apiEndpoints';
+import { AUTH } from '../utils/literals/apiEndpointsliterals';
 
 // Define types for the API response
 interface EmrSystemDetails {
