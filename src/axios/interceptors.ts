@@ -1,6 +1,7 @@
 import { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import axiosInstance from './instance';
 import { store } from '../redux/store';
+import logger from '../utils/logger';
 
 /**
  * Request interceptor
@@ -12,18 +13,12 @@ const setupRequestInterceptor = () => {
     (config: InternalAxiosRequestConfig) => {
       // Get the current state
       const state = store.getState();
-      const token = state.auth.token;
 
-      // If token exists, add to headers
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-
-      console.log(`🚀 REQUEST: ${config.method?.toUpperCase()} ${config.url}`, config);
+      logger.httpRequest(config.method || 'unknown', config.url || 'unknown', config);
       return config;
     },
     (error: AxiosError) => {
-      console.log('❌ Request Error:', error);
+      logger.httpError('Request Error', error);
       return Promise.reject(error);
     }
   );
@@ -38,13 +33,13 @@ const setupRequestInterceptor = () => {
 const setupResponseInterceptor = () => {
   axiosInstance.interceptors.response.use(
     (response: AxiosResponse) => {
-      console.log(`✅ RESPONSE: ${response.config.method?.toUpperCase()} ${response.config.url}`, response);
+      logger.httpResponse(response.config.method || 'unknown', response.config.url || 'unknown', response);
       return response;
     },
     (error: AxiosError) => {
       const { response } = error;
       
-      console.log('❌ Response Error:', error);
+      logger.httpError('Response Error', error);
 
       // Handle authentication errors
       if (response?.status === 401 || response?.status === 403) {

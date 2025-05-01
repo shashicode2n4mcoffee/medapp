@@ -3,6 +3,7 @@ import { createLogger } from 'redux-logger';
 import { useDispatch, useSelector } from 'react-redux';
 import type { TypedUseSelectorHook } from 'react-redux';
 import authReducer from './slices/authSlice';
+import logger from '../utils/logger';
 
 // Custom middleware to log actions and state
 const actionLogger: Middleware = store => next => (action: unknown) => {
@@ -10,17 +11,21 @@ const actionLogger: Middleware = store => next => (action: unknown) => {
   const actionType = typeof action === 'object' && action !== null && 'type' in action 
     ? (action as { type: string }).type 
     : 'unknown';
-  console.group(`ACTION: ${actionType}`);
-  console.log('Old State:', store.getState());
-  console.log('Action:', action);
-  const result = next(action);
-  console.log('New State:', store.getState());
-  console.groupEnd();
-  return result;
+  
+  logger.group(`ACTION: ${actionType}`, true, () => {
+    logger.debug('Old State', store.getState());
+    logger.debug('Action', action);
+    const result = next(action);
+    logger.debug('New State', store.getState());
+    return result;
+  });
+  
+  // Need to call next(action) outside the group function to ensure proper flow
+  return next(action);
 };
 
 // Logger middleware for development
-const logger = createLogger({
+const reduxLogger = createLogger({
   collapsed: true,
 });
 
@@ -29,7 +34,7 @@ const middleware = [actionLogger];
 
 // Only add redux-logger in development
 if (__DEV__) {
-  middleware.push(logger);
+  middleware.push(reduxLogger);
 }
 
 // Configure store

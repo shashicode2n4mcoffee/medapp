@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, PermissionsAndroid, useColorScheme, TextInput } from 'react-native';
 import Voice, { SpeechResultsEvent, SpeechErrorEvent } from '@react-native-voice/voice';
 import { Colors } from '../theme/Colors';
+import logger from '../utils/logger';
 
 interface SpeechToTextProps {
   onSpeechResult?: (text: string) => void;
@@ -68,7 +69,7 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
   };
 
   const onSpeechError = (e: SpeechErrorEvent) => {
-    console.log('Speech error:', e);
+    logger.error('Speech error', e);
     
     if (isListeningRef.current) {
       // Only try to restart if we're still in listening mode
@@ -80,7 +81,7 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
           }
         }, 300);
       } catch (err) {
-        console.error('Error restarting voice recognition:', err);
+        logger.error('Error restarting voice recognition', err);
         setIsListening(false);
         isListeningRef.current = false;
       }
@@ -157,7 +158,7 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
       await Voice.start('en-US');
     } catch (e) {
       setError('Error starting speech recognition');
-      console.error(e);
+      logger.error('Error starting speech recognition', e);
       setIsListening(false);
       isListeningRef.current = false;
     }
@@ -171,7 +172,7 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
     try {
       await Voice.stop();
     } catch (e) {
-      console.error(e);
+      logger.error('Error stopping speech recognition', e);
     }
   };
 

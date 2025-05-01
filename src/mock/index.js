@@ -4,6 +4,29 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const { v4: uuidv4 } = require('uuid');
 
+// Import logger (CommonJS import for Node.js environment)
+// Note: This assumes the logger can be used in Node.js environment
+// You might need to create a separate logger for Node.js
+const logger = {
+  info: (message, data) => {
+    const timestamp = new Date().toISOString();
+    console.info(`[${timestamp}] [INFO] ${message}`, data || '');
+  },
+  debug: (message, data) => {
+    const timestamp = new Date().toISOString();
+    console.debug(`[${timestamp}] [DEBUG] ${message}`, data || '');
+  },
+  error: (message, data) => {
+    const timestamp = new Date().toISOString();
+    console.error(`[${timestamp}] [ERROR] ${message}`, data || '');
+  },
+  group: (title, callback) => {
+    console.group(title);
+    callback();
+    console.groupEnd();
+  }
+};
+
 // Initialize express app
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -29,17 +52,20 @@ app.use((req, res, next) => {
 
 // Logging middleware
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
-  if (req.body) {
-    console.log('Request body:', req.body);
-  }
+  // Log request details together
+  logger.group(`Request: ${req.method} ${req.url}`, () => {
+    logger.info(`${req.method} ${req.url}`);
+    if (req.body && Object.keys(req.body).length > 0) {
+      logger.debug('Request body', req.body);
+    }
+  });
   next();
 });
 
 // Mock login endpoint
 app.post('/api/V2/account/auth/login/', (req, res) => {
   // Log received request
-  console.log('Login request received:', req.body);
+  logger.info('Login request received', req.body);
 
   // Basic validation - with safer destructuring
   const { email, password } = req.body || {};
@@ -133,7 +159,7 @@ app.use((req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('Error:', err.stack);
+  logger.error('Server Error', err.stack);
   res.status(500).json({
     error: 'Internal Server Error',
     message: err.message || 'An unexpected error occurred'
@@ -142,6 +168,8 @@ app.use((err, req, res, next) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`Mock API server running on port ${PORT}`);
-  console.log(`Access the server at http://localhost:${PORT}`);
+  logger.group('Server Started', () => {
+    logger.info(`Mock API server running on port ${PORT}`);
+    logger.info(`Access the server at http://localhost:${PORT}`);
+  });
 });

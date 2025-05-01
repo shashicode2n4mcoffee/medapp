@@ -1,5 +1,6 @@
 import axios from 'axios';
 import env from '../environment';
+import logger from '../utils/logger';
 
 /**
  * Base API configuration for the application
@@ -23,17 +24,19 @@ axiosInstance.interceptors.request.use(
   (config) => {
     // Extract and log the full URL
     const url = (config.baseURL || '') + (config.url || '');
-    console.log('🔗 API Request URL:', url);
     
-    // Log the request payload if it exists
-    if (config.data) {
-      console.log('📦 Request Payload:', config.data);
-    }
+    // Log request details in a single call
+    logger.group('API Request', false, () => {
+      logger.debug('API Request URL', url);
+      if (config.data) {
+        logger.debug('Request Payload', config.data);
+      }
+    });
     
     return config;
   },
   (error) => {
-    console.log('❌ Request Error:', error);
+    logger.error('Request Error', error);
     return Promise.reject(error);
   }
 );

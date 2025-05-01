@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Text, View } from 'react-native';
+import logger from '../utils/logger';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -24,8 +25,11 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.log('App Error:', error);
-    console.log('Error Info:', errorInfo);
+    // Log both error details in a grouped log
+    logger.group('App Error', false, () => {
+      logger.error('Error', error);
+      logger.error('Error Info', errorInfo);
+    });
   }
 
   render() {

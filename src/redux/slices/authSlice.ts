@@ -2,15 +2,37 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { authService } from '../../api';
 
 // Define types for our state
+interface EmrSystemDetails {
+  id: number;
+  emr_name: string;
+  emr_version: string;
+  emr_verbose_name: string;
+  emr_code: string;
+}
+
+interface Settings {
+  [key: string]: string;
+}
+
 interface User {
-  id: string;
+  user_id: number;
+  practitioner_id: number;
+  practitioner_role: string;
+  first_name: string;
+  last_name: string;
+  timezone: string;
+  language: string;
+  has_accepted_terms: boolean;
+  settings: Settings;
+  is_emr_linked: boolean;
+  emr_system_details: EmrSystemDetails;
+  speciality: string;
   email: string;
-  name: string;
+  license_number: string;
 }
 
 interface AuthState {
   user: User | null;
-  token: string | null;
   loading: boolean;
   error: string | null;
 }
@@ -18,29 +40,36 @@ interface AuthState {
 // Initial state
 const initialState: AuthState = {
   user: null,
-  token: null,
   loading: false,
   error: null,
 };
 
+// Define the type for loginUser thunk returned payload
+interface LoginUserPayload {
+  user: User;
+}
+
 // Create login thunk action using authService
-export const loginUser = createAsyncThunk(
+export const loginUser = createAsyncThunk<
+  LoginUserPayload,
+  { email: string; password: string },
+  { rejectValue: string }
+>(
   'auth/login',
-  async ({ email, password }: { email: string; password: string }, { rejectWithValue }) => {
+  async ({ email, password }, { rejectWithValue }) => {
     try {
       const response = await authService.login(email, password);
       
-      if (!response.success) {
+      if (!response.success || !response.data) {
         return rejectWithValue(
           response.error?.message || 
           'Login failed'
         );
       }
       
-      // Return the user and token data
+      // Return the user data from response.data
       return {
-        user: response.data!.user,
-        token: response.data!.token,
+        user: response.data as User,
       };
     } catch (error: any) {
       // Fallback error handling
@@ -57,7 +86,6 @@ const authSlice = createSlice({
     // Manual actions
     logout: (state) => {
       state.user = null;
-      state.token = null;
       state.error = null;
     },
     clearError: (state) => {
@@ -72,10 +100,9 @@ const authSlice = createSlice({
         state.error = null;
       })
       // Login success
-      .addCase(loginUser.fulfilled, (state, action: PayloadAction<{ user: User; token: string }>) => {
+      .addCase(loginUser.fulfilled, (state, action: PayloadAction<LoginUserPayload>) => {
         state.loading = false;
         state.user = action.payload.user;
-        state.token = action.payload.token;
         state.error = null;
       })
       // Login failure

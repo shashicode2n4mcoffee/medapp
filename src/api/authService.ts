@@ -1,15 +1,37 @@
 import apiClient, { ApiResponse } from './apiClient';
 
-// Define types
-interface User {
-  id: string;
-  email: string;
-  name: string;
+// Define types for the API response
+interface EmrSystemDetails {
+  id: number;
+  emr_name: string;
+  emr_version: string;
+  emr_verbose_name: string;
+  emr_code: string;
 }
 
-interface LoginResponse {
-  user: User;
-  token: string;
+interface Settings {
+  [key: string]: string;
+}
+
+interface User {
+  user_id: number;
+  practitioner_id: number;
+  practitioner_role: string;
+  first_name: string;
+  last_name: string;
+  timezone: string;
+  language: string;
+  has_accepted_terms: boolean;
+  settings: Settings;
+  is_emr_linked: boolean;
+  emr_system_details: EmrSystemDetails;
+  speciality: string;
+  email: string;
+  license_number: string;
+}
+
+interface LoginResponse extends User {
+  token?: string;
 }
 
 interface LoginRequest {
@@ -25,18 +47,17 @@ class AuthService {
    * Authenticate user and get token
    * @param email - User email
    * @param password - User password
-   * @returns Promise with login response containing user and token
+   * @returns Promise with login response containing user data
    */
   async login(email: string, password: string): Promise<ApiResponse<LoginResponse>> {
     const response = await apiClient.post<any>('/api/V2/account/auth/login', { email, password });
     
     if (response.success && response.data) {
-      // Standardize the response structure
+      // The API response data already contains the user information
       return {
         success: true,
         data: {
-          user: response.data.user,
-          token: response.data.token || response.data.accessToken,
+          ...response.data,
         },
         statusCode: response.statusCode,
       };
