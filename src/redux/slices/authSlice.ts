@@ -45,7 +45,7 @@ export const loginUser = createAsyncThunk(
     //   }
       
       // Real API call using axios
-      const response = await axiosInstance.post('/api/auth/login', { 
+      const response = await axiosInstance.post('/auth/login', { 
         email, 
         password 
       });

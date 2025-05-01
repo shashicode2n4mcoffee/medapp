@@ -22,7 +22,7 @@ const currentEnv = getEnvironment();
 const getApiBaseUrl = (): string => {
   switch (currentEnv) {
     case 'development':
-      return Config.API_BASE_URL_DEVELOPMENT || 'https://dev-api.example.com';
+      return Config.API_BASE_URL_DEVELOPMENT || 'https://testapi.medvise.ai/api/V2/account/api';
     case 'staging':
       return Config.API_BASE_URL_STAGING || 'https://staging-api.example.com';
     case 'production':

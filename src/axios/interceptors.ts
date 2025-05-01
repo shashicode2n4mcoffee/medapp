@@ -1,4 +1,4 @@
-import { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
+import { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import axiosInstance from './instance';
 import { store } from '../redux/store';
 
@@ -9,17 +9,14 @@ import { store } from '../redux/store';
  */
 const setupRequestInterceptor = () => {
   axiosInstance.interceptors.request.use(
-    (config: AxiosRequestConfig) => {
+    (config: InternalAxiosRequestConfig) => {
       // Get the current state
       const state = store.getState();
       const token = state.auth.token;
 
       // If token exists, add to headers
       if (token) {
-        config.headers = {
-          ...config.headers,
-          Authorization: `Bearer ${token}`,
-        };
+        config.headers.Authorization = `Bearer ${token}`;
       }
 
       console.log(`🚀 REQUEST: ${config.method?.toUpperCase()} ${config.url}`, config);
@@ -41,7 +38,7 @@ const setupRequestInterceptor = () => {
 const setupResponseInterceptor = () => {
   axiosInstance.interceptors.response.use(
     (response: AxiosResponse) => {
-      console.log(`✅ RESPONSE: ${response.config.method?.toUpperCase()} ${response.config.url}`, response.data);
+      console.log(`✅ RESPONSE: ${response.config.method?.toUpperCase()} ${response.config.url}`, response);
       return response;
     },
     (error: AxiosError) => {
