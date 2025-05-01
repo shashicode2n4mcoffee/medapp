@@ -45,6 +45,7 @@ export const loginUser = createAsyncThunk(
     //   }
       
       // Real API call using axios
+      debugger; // This will pause execution when Chrome DevTools is open
       const response = await axiosInstance.post('/auth/login', { 
         email, 
         password 
