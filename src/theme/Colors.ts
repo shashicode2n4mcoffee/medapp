@@ -1,22 +1,22 @@
 /**
- * Color definitions for the application
+ * Color definitions for the application - MEDVISE theme
  */
 
 export const Colors = {
-  primary: '#007AFF',
-  secondary: '#5856D6',
-  accent: '#FF2D55',
+  primary: '#27ae60', // MEDVISE green color
+  secondary: '#2ecc71',
+  accent: '#3498db',
   success: '#4CD964',
   error: '#FF3B30',
   warning: '#FF9500',
   info: '#5AC8FA',
   
   // Light/dark mode colors
-  light: '#FFFFFF',
+  light: '#e5f9ee', // Light mint background
   lightGray: '#F2F2F7',
   gray: '#8E8E93',
   darkGray: '#636366',
-  dark: '#000000',
+  dark: '#1a1a1a',
   
   // Text colors
   textPrimary: '#000000',
@@ -25,6 +25,6 @@ export const Colors = {
   textLight: '#FFFFFF',
   
   // Background colors
-  backgroundLight: '#FFFFFF',
-  backgroundDark: '#000000',
+  backgroundLight: '#e5f9ee', // Light mint background
+  backgroundDark: '#1a1a1a',
 };

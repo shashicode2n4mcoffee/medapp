@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, useColorScheme, KeyboardAvoidingView, Platform, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, useColorScheme, KeyboardAvoidingView, Platform, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../theme/Colors';
@@ -8,7 +8,6 @@ import Button from '../components/Button';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { loginUser } from '../redux/slices/authSlice';
 import { useAppDispatch, useAppSelector } from '../redux/store';
-
 
 type LoginScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Login'>;
@@ -21,8 +20,8 @@ const LoginScreen = ({ navigation }: LoginScreenProps) => {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const { error, user } = useAppSelector(state => state.auth);
-
 
   const dispatch = useAppDispatch();
 
@@ -68,6 +67,10 @@ const LoginScreen = ({ navigation }: LoginScreenProps) => {
     navigation.navigate('ForgotPassword');
   };
 
+  const toggleRememberMe = () => {
+    setRememberMe(!rememberMe);
+  };
+
   return (
     <SafeAreaView 
       style={[
@@ -85,22 +88,30 @@ const LoginScreen = ({ navigation }: LoginScreenProps) => {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.formContainer}>
+            {/* Logo */}
+            <View style={styles.logoContainer}>
+              <View style={styles.logoWrapper}>
+                <Text style={styles.logoText}>MEDVISE</Text>
+              </View>
+            </View>
+
+            {/* Welcome Text */}
             <Text style={[
               styles.title,
               { color: isDarkMode ? Colors.textLight : Colors.textPrimary }
             ]}>
-              Welcome Back
+              Welcome
             </Text>
             <Text style={[
               styles.subtitle,
               { color: isDarkMode ? Colors.gray : Colors.textSecondary }
             ]}>
-              Sign in to continue
+              Please login to your account
             </Text>
 
             <View style={styles.inputContainer}>
               <InputField
-                label="Email"
+                label="Email ID"
                 placeholder="Enter your email"
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -115,6 +126,7 @@ const LoginScreen = ({ navigation }: LoginScreenProps) => {
                 label="Password"
                 placeholder="Enter your password"
                 secureTextEntry
+                showPasswordToggle
                 value={password}
                 onChangeText={(text) => {
                   setPassword(text);
@@ -124,17 +136,41 @@ const LoginScreen = ({ navigation }: LoginScreenProps) => {
               />
             </View>
 
-            <TouchableOpacity 
-              style={styles.forgotPasswordContainer}
-              onPress={handleForgotPassword}
-            >
-              <Text style={[
-                styles.forgotPassword,
-                { color: Colors.primary }
-              ]}>
-                Forgot Password?
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.optionsContainer}>
+              <TouchableOpacity 
+                style={styles.rememberMeContainer}
+                onPress={toggleRememberMe}
+                activeOpacity={0.7}
+              >
+                <View style={[
+                  styles.checkbox,
+                  rememberMe && { backgroundColor: Colors.primary, borderColor: Colors.primary }
+                ]}>
+                  {rememberMe && (
+                    <Text style={styles.checkmark}>✓</Text>
+                  )}
+                </View>
+                <Text style={[
+                  styles.rememberMeText,
+                  { color: isDarkMode ? Colors.gray : Colors.textSecondary }
+                ]}>
+                  Remember me
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.forgotPasswordContainer}
+                onPress={handleForgotPassword}
+                activeOpacity={0.7}
+              >
+                <Text style={[
+                  styles.forgotPassword,
+                  { color: Colors.primary }
+                ]}>
+                  Forgot password?
+                </Text>
+              </TouchableOpacity>
+            </View>
 
             <Button
               title="Login"
@@ -151,7 +187,7 @@ const LoginScreen = ({ navigation }: LoginScreenProps) => {
               ]}>
                 Don't have an account?
               </Text>
-              <TouchableOpacity>
+              <TouchableOpacity activeOpacity={0.7}>
                 <Text style={[
                   styles.signupLink,
                   { color: Colors.primary }
@@ -184,24 +220,71 @@ const styles = StyleSheet.create({
     maxWidth: 500,
     alignSelf: 'center',
   },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  logoWrapper: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 8,
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
     marginBottom: 32,
+    textAlign: 'center',
   },
   inputContainer: {
     marginBottom: 16,
   },
-  forgotPasswordContainer: {
-    alignSelf: 'flex-end',
+  optionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 24,
+  },
+  rememberMeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: Colors.gray,
+    marginRight: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkmark: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  rememberMeText: {
+    fontSize: 14,
+  },
+  forgotPasswordContainer: {
+    alignItems: 'flex-end',
   },
   forgotPassword: {
     fontSize: 14,
+    fontWeight: '500',
   },
   loginButton: {
     marginBottom: 24,

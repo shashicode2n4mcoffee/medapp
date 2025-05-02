@@ -60,23 +60,18 @@ const ForgotPasswordScreen = ({ navigation }: ForgotPasswordScreenProps) => {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.formContainer}>
-            <TouchableOpacity 
-              style={styles.backButton} 
-              onPress={handleBackToLogin}
-            >
-              <Text style={[
-                styles.backText,
-                { color: Colors.primary }
-              ]}>
-                ← Back to Login
-              </Text>
-            </TouchableOpacity>
+            {/* Logo */}
+            <View style={styles.logoContainer}>
+              <View style={styles.logoWrapper}>
+                <Text style={styles.logoText}>MEDVISE</Text>
+              </View>
+            </View>
             
             <Text style={[
               styles.title,
               { color: isDarkMode ? Colors.textLight : Colors.textPrimary }
             ]}>
-              Reset Password
+              {resetSent ? 'Check Your Email' : 'Forgot Password?'}
             </Text>
             
             <Text style={[
@@ -92,7 +87,7 @@ const ForgotPasswordScreen = ({ navigation }: ForgotPasswordScreenProps) => {
               <>
                 <View style={styles.inputContainer}>
                   <InputField
-                    label="Email"
+                    label="Email ID"
                     placeholder="Enter your email"
                     keyboardType="email-address"
                     autoCapitalize="none"
@@ -106,12 +101,25 @@ const ForgotPasswordScreen = ({ navigation }: ForgotPasswordScreenProps) => {
                 </View>
 
                 <Button
-                  title="Reset Password"
+                  title="Submit"
                   onPress={handleSubmit}
                   loading={loading}
                   disabled={!email}
                   style={styles.submitButton}
                 />
+
+                <TouchableOpacity 
+                  style={styles.backButton} 
+                  onPress={handleBackToLogin}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[
+                    styles.backText,
+                    { color: Colors.primary }
+                  ]}>
+                    Back to Login
+                  </Text>
+                </TouchableOpacity>
               </>
             ) : (
               <Button
@@ -144,27 +152,47 @@ const styles = StyleSheet.create({
     maxWidth: 500,
     alignSelf: 'center',
   },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  logoWrapper: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
   backButton: {
-    marginBottom: 24,
-    alignSelf: 'flex-start',
+    marginTop: 16,
+    alignItems: 'center',
   },
   backText: {
     fontSize: 16,
+    fontWeight: '500',
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 8,
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
     marginBottom: 32,
+    textAlign: 'center',
   },
   inputContainer: {
     marginBottom: 24,
   },
   submitButton: {
-    marginBottom: 24,
+    marginBottom: 8,
   },
 });
 
