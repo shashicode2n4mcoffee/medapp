@@ -54,6 +54,7 @@ export const STORAGE_KEYS = {
   AUTH_TOKEN: 'auth_token',
   USER_INFO: 'user_info',
   SETTINGS: 'app_settings',
+  CSRF_TOKEN: 'csrf_token',
 };
 
 // Timeouts and intervals (in milliseconds)

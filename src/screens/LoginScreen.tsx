@@ -48,7 +48,6 @@ const LoginScreen = ({ navigation }: LoginScreenProps) => {
 
     if (!emailValidationError && !passwordValidationError) {
       setLoading(true);
-      navigation.replace('Home');
       
       // Dispatch login action with actual form values
       dispatch(loginUser({ email, password }))

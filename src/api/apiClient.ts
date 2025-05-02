@@ -1,6 +1,7 @@
 // filepath: c:\Projects\aiapp\AIApp\src\api\apiClient.ts
 import axiosInstance from '../axios/instance';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
+import logger from '../utils/logger';
 
 /**
  * Interface for API response
@@ -13,6 +14,8 @@ export interface ApiResponse<T = any> {
     code: string;
     message: string;
     details?: any;
+    endpoint?: string;
+    method?: string;
   };
   statusCode?: number;
 }
@@ -145,31 +148,90 @@ class ApiClient {
       error: {
         code: 'UNKNOWN_ERROR',
         message: 'An unexpected error occurred',
+        endpoint: error.config?.url || 'unknown',
+        method: error.config?.method?.toUpperCase() || 'UNKNOWN',
       },
       statusCode: 500,
     };
 
+    // Determine error type and set appropriate error details
     if (error.response) {
       // Server responded with an error status code
-      errorResponse.statusCode = error.response.status;
+      const { status, data, statusText } = error.response;
+      errorResponse.statusCode = status;
+      
+      // Extract error message from various possible response formats
+      const errorMessage = 
+        data?.message || 
+        data?.error?.message || 
+        data?.error || 
+        statusText || 
+        `Error ${status}`;
+      
       errorResponse.error = {
-        code: `ERROR_${error.response.status}`,
-        message: error.response.data?.message || `Error ${error.response.status}`,
-        details: error.response.data,
+        code: `ERROR_${status}`,
+        message: errorMessage,
+        details: data,
+        endpoint: error.config?.url,
+        method: error.config?.method?.toUpperCase(),
       };
+      
+      // Console log the detailed error
+      logger.group(`🔴 API Error [${status}]`, false, () => {
+        logger.error(`${error.config?.method?.toUpperCase() || 'REQUEST'} ${error.config?.url} failed with status ${status}`, null);
+        logger.error('Error message:', errorMessage);
+        logger.debug('Response data:', data);
+        logger.debug('Request details:', {
+          url: error.config?.url,
+          method: error.config?.method,
+          headers: error.config?.headers,
+          data: error.config?.data
+        });
+      });
+      
     } else if (error.request) {
-      // Request was made but no response received
+      // Request was made but no response received (network error)
       errorResponse.error = {
         code: 'NETWORK_ERROR',
         message: 'Network error, no response received from server',
-        details: error.request,
+        details: { 
+          request: error.request,
+          requestUrl: error.config?.url,
+          requestMethod: error.config?.method
+        },
+        endpoint: error.config?.url,
+        method: error.config?.method?.toUpperCase(),
       };
+      
+      // Console log the network error
+      logger.group('🔴 API Network Error', false, () => {
+        logger.error(`${error.config?.method?.toUpperCase() || 'REQUEST'} ${error.config?.url} failed - No response received`, null);
+        logger.error('Error:', error.message);
+        logger.debug('Request details:', {
+          url: error.config?.url,
+          method: error.config?.method,
+          headers: error.config?.headers,
+          data: error.config?.data
+        });
+      });
+      
     } else {
       // Something happened in setting up the request
       errorResponse.error = {
         code: 'REQUEST_SETUP_ERROR',
         message: error.message || 'Error setting up the request',
+        endpoint: error.config?.url,
+        method: error.config?.method?.toUpperCase(),
       };
+      
+      // Console log the setup error
+      logger.group('🔴 API Request Setup Error', false, () => {
+        logger.error('Failed to setup API request', error.message);
+        if (error.config) {
+          logger.debug('Request configuration:', error.config);
+        }
+        logger.debug('Error stack:', error.stack);
+      });
     }
 
     return errorResponse;
