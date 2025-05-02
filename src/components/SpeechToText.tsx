@@ -1,32 +1,54 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, PermissionsAndroid, useColorScheme, TextInput, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, PermissionsAndroid, useColorScheme, Image, ScrollView } from 'react-native';
 import Voice, { SpeechResultsEvent, SpeechErrorEvent } from '@react-native-voice/voice';
 import { Colors } from '../theme/Colors';
 import logger from '../utils/logger';
+import TranscriptLoadingModal from './TranscriptLoadingModal';
 
 // Import images
-const startIcon = require('../assets/start.png');
-const pauseIcon = require('../assets/pause.png');
+const micIcon = require('../assets/start.png');
+
+interface PatientInfo {
+  name?: string;
+  age?: string;
+  gender?: string;
+  mrn?: string;
+  uid?: string;
+}
 
 interface SpeechToTextProps {
   onSpeechResult?: (text: string) => void;
   placeholder?: string;
   onSubmit?: (text: string) => void;
+  onSaveNote?: (text: string) => void;
+  patientInfo?: PatientInfo;
 }
 
 const SpeechToText: React.FC<SpeechToTextProps> = ({
   onSpeechResult,
   placeholder = 'Tap microphone and start speaking',
-  onSubmit
+  onSubmit,
+  onSaveNote,
+  patientInfo = {
+    name: 'George Smith',
+    age: '43',
+    gender: 'Male',
+    mrn: '430897134',
+    uid: '430897134'
+  }
 }) => {
   const isDarkMode = useColorScheme() === 'dark';
   const [isListening, setIsListening] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [speechText, setSpeechText] = useState('');
   const [hasPermission, setHasPermission] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
   const accumulatedTextRef = useRef('');
   const isListeningRef = useRef(false); // Use ref to track listening state for callbacks
+  const [recordingTime, setRecordingTime] = useState(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  // Add new state for transcript loading modal
+  const [showTranscriptModal, setShowTranscriptModal] = useState(false);
 
   useEffect(() => {
     // Initialize Voice
@@ -64,9 +86,36 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
     // Cleanup Voice listeners on component unmount
     return () => {
       stopSpeechToText();
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
       Voice.destroy().then(Voice.removeAllListeners);
     };
   }, []);
+
+  // Start timer when listening begins
+  useEffect(() => {
+    if (isListening && !isPaused) {
+      timerRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+    } else if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [isListening, isPaused]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const onSpeechStart = () => {
     setError(null);
@@ -75,12 +124,12 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
   const onSpeechError = (e: SpeechErrorEvent) => {
     logger.error('Speech error', e);
     
-    if (isListeningRef.current) {
+    if (isListeningRef.current && !isPaused) {
       // Only try to restart if we're still in listening mode
       try {
         // Small delay before restarting to avoid rapid restarts
         setTimeout(() => {
-          if (isListeningRef.current) {
+          if (isListeningRef.current && !isPaused) {
             Voice.start('en-US');
           }
         }, 300);
@@ -122,7 +171,7 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
       }
       
       // Immediately restart listening if we're still in listening mode
-      if (isListeningRef.current) {
+      if (isListeningRef.current && !isPaused) {
         try {
           Voice.start('en-US');
         } catch (err) {
@@ -133,9 +182,6 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
   };
 
   const startSpeechToText = async () => {
-    // Stop editing mode if active
-    setIsEditing(false);
-    
     if (!hasPermission) {
       setError('Microphone permission not granted');
       return;
@@ -150,9 +196,14 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
       // Ignore errors when stopping
     }
     
-    // Reset accumulated text when starting a new recording session
-    accumulatedTextRef.current = '';
-    setSpeechText('');
+    if (isPaused) {
+      setIsPaused(false);
+    } else if (!isListening) {
+      // Reset accumulated text when starting a new recording session
+      accumulatedTextRef.current = '';
+      setSpeechText('');
+      setRecordingTime(0);
+    }
     
     // Update both state and ref
     setIsListening(true);
@@ -168,10 +219,21 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
     }
   };
 
+  const pauseSpeechToText = async () => {
+    setIsPaused(true);
+    
+    try {
+      await Voice.stop();
+    } catch (e) {
+      logger.error('Error pausing speech recognition', e);
+    }
+  };
+
   const stopSpeechToText = async () => {
     // Update both state and ref
     setIsListening(false);
     isListeningRef.current = false;
+    setIsPaused(false);
     
     try {
       await Voice.stop();
@@ -180,280 +242,276 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
     }
   };
 
-  const toggleListening = () => {
-    if (isListening) {
-      stopSpeechToText();
-    } else {
+  const toggleRecording = () => {
+    if (!isListening) {
       startSpeechToText();
+    } else if (isPaused) {
+      startSpeechToText(); // Resume recording
+    } else {
+      pauseSpeechToText();
     }
   };
 
-  const resetSpeech = () => {
-    setSpeechText('');
-    accumulatedTextRef.current = '';
-    setIsEditing(false);
-    if (onSpeechResult) {
-      onSpeechResult('');
+  const generateNotes = () => {
+    if (onSaveNote && speechText) {
+      onSaveNote(speechText);
     }
   };
 
-  const handleTextChange = (text: string) => {
-    setSpeechText(text);
-    accumulatedTextRef.current = text;
-    if (onSpeechResult) {
-      onSpeechResult(text);
-    }
-  };
-
-  const toggleEditing = () => {
-    // Don't allow editing while actively listening
-    if (isListening) {
-      return;
-    }
-    setIsEditing(!isEditing);
-  };
-
-  const submitText = () => {
+  const endRecording = () => {
+    stopSpeechToText();
     if (onSubmit && speechText) {
-      onSubmit(speechText);
+      logger.debug('Submitting speech text:', speechText);
+      // Show transcript loading modal
+      setShowTranscriptModal(true);
+      // Simulate waiting time - this would be replaced with actual API call in production
+      setTimeout(() => {
+        onSubmit(speechText);
+        setShowTranscriptModal(false);
+      }, 4000); // Showing modal for 4 seconds for demo purposes
     }
-    setIsEditing(false);
-  };
-
-  const renderTranscript = () => {
-    if (!speechText && !isEditing) {
-      return null;
-    }
-    
-    return (
-      <TouchableOpacity 
-        style={[
-          styles.resultContainer,
-          { backgroundColor: isDarkMode ? 'rgba(50,50,50,0.8)' : 'rgba(245,245,245,0.9)' }
-        ]}
-        activeOpacity={0.7}
-        disabled={isListening}
-        onPress={toggleEditing}
-      >
-        {isEditing ? (
-          <View style={styles.editingContainer}>
-            <TextInput
-              style={[
-                styles.inputText,
-                { color: isDarkMode ? Colors.textLight : Colors.textPrimary }
-              ]}
-              value={speechText}
-              onChangeText={handleTextChange}
-              multiline
-              autoFocus
-              onSubmitEditing={submitText}
-            />
-            <TouchableOpacity
-              style={styles.submitButton}
-              onPress={submitText}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.submitButtonText}>Submit</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <Text
-            style={[
-              styles.resultText,
-              { color: isDarkMode ? Colors.textLight : Colors.textDark || '#000000' }
-            ]}
-          >
-            {speechText}
-            {!isListening && speechText ? 
-              <Text style={styles.editHintText}> (Tap to edit)</Text> : null
-            }
-          </Text>
-        )}
-      </TouchableOpacity>
-    );
   };
 
   return (
     <View style={styles.container}>
-      {error ? (
-        <Text style={styles.errorText}>{error}</Text>
-      ) : null}
+      {/* Patient Context Card */}
+      <View style={styles.patientCard}>
+        <Text style={styles.patientCardTitle}>Patient Context</Text>
+        
+        <View style={styles.patientInfoContainer}>
+          <View style={styles.patientInfoRow}>
+            <Text style={styles.patientInfoLabel}>Name</Text>
+            <Text style={styles.patientInfoLabel}>Age</Text>
+            <Text style={styles.patientInfoLabel}>Gender</Text>
+            <Text style={styles.patientInfoLabel}>MRN</Text>
+            <Text style={styles.patientInfoLabel}>UID</Text>
+          </View>
+          
+          <View style={styles.patientInfoRow}>
+            <Text style={styles.patientInfoValue}>{patientInfo.name}</Text>
+            <Text style={styles.patientInfoValue}>{patientInfo.age}</Text>
+            <Text style={styles.patientInfoValue}>{patientInfo.gender}</Text>
+            <Text style={styles.patientInfoValue}>{patientInfo.mrn}</Text>
+            <Text style={styles.patientInfoValue}>{patientInfo.uid}</Text>
+          </View>
+        </View>
+      </View>
       
-      <View style={styles.mainControlsContainer}>
+      {/* Microphone Button and Timer */}
+      <View style={styles.microphoneContainer}>
         <TouchableOpacity
-          style={[
-            styles.micButton,
-            isListening ? 
-              { backgroundColor: Colors.error } : 
-              { backgroundColor: Colors.primary }
-          ]}
-          onPress={toggleListening}
+          style={styles.micButton}
+          onPress={toggleRecording}
           activeOpacity={0.7}
         >
           <Image 
-            source={isListening ? pauseIcon : startIcon} 
-            style={styles.buttonImage} 
+            source={micIcon} 
+            style={[
+              styles.micImage, 
+              isListening && !isPaused && { tintColor: Colors.primary }
+            ]} 
             resizeMode="contain"
           />
         </TouchableOpacity>
         
-        <View style={styles.buttonActions}>
-          {speechText ? (
-            <TouchableOpacity
-              style={styles.resetButton}
-              onPress={resetSpeech}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.resetButtonText}>Reset</Text>
-            </TouchableOpacity>
-          ) : null}
-          
-          {speechText && !isListening && !isEditing ? (
-            <TouchableOpacity
-              style={styles.editButton}
-              onPress={toggleEditing}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.editButtonText}>Edit</Text>
-            </TouchableOpacity>
-          ) : null}
-        </View>
+        <Text style={styles.timerText}>{formatTime(recordingTime)}</Text>
+        
+        {isPaused && (
+          <View style={styles.pausedMessageContainer}>
+            <View style={styles.errorDot} />
+            <Text style={styles.pausedMessageText}>
+              Your recording is paused, click on the above button to resume recording
+            </Text>
+          </View>
+        )}
       </View>
       
-      {!isListening && !speechText ? (
-        <Text style={[styles.placeholderText, { color: isDarkMode ? Colors.textLight : Colors.textSecondary }]}>
-          {placeholder}
-        </Text>
-      ) : null}
+      {/* Live Transcription */}
+      <View style={styles.transcriptionContainer}>
+        <Text style={styles.transcriptionTitle}>Live transcription</Text>
+        
+        <ScrollView style={styles.transcriptionContent}>
+          <Text style={styles.transcriptionText}>{speechText || "Tap the microphone button to start recording"}</Text>
+        </ScrollView>
+      </View>
       
-      {renderTranscript()}
+      {/* Action Buttons */}
+      <View style={styles.actionButtonsContainer}>
+        <TouchableOpacity
+          style={styles.generateNotesButton}
+          onPress={generateNotes}
+          activeOpacity={0.7}
+          disabled={!speechText}
+        >
+          <Text style={styles.generateNotesText}>Generate Notes</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.endRecordingButton}
+          onPress={endRecording}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.endRecordingText}>End recording</Text>
+        </TouchableOpacity>
+      </View>
+      
+      {/* Use the TranscriptLoadingModal component instead of inline modal */}
+      <TranscriptLoadingModal
+        visible={showTranscriptModal}
+        onRequestClose={() => setShowTranscriptModal(false)}
+      />
+      
+      {error ? (
+        <Text style={styles.errorText}>{error}</Text>
+      ) : null}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     width: '100%',
-    alignItems: 'center',
-    marginVertical: 20,
   },
-  mainControlsContainer: {
-    width: '100%',
+  patientCard: {
+    backgroundColor: Colors.lightGreen,
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 20,
+  },
+  patientCardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    marginBottom: 8,
+  },
+  patientInfoContainer: {
+    marginTop: 4,
+  },
+  patientInfoRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
+    justifyContent: 'space-between',
+    marginBottom: 4,
   },
-  buttonActions: {
-    flexDirection: 'column',
-    marginLeft: 20,
-  },
-  placeholderText: {
-    marginBottom: 20,
-    textAlign: 'center',
-    fontStyle: 'italic',
-    fontSize: 14,
-  },
-  resultContainer: {
-    width: '100%',
-    minHeight: 80,
-    borderRadius: 8,
-    padding: 16,
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.1)',
-  },
-  resultText: {
-    fontSize: 16,
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  editHintText: {
+  patientInfoLabel: {
     fontSize: 12,
-    fontStyle: 'italic',
-    opacity: 0.6,
+    color: Colors.textSecondary,
+    flex: 1,
   },
-  inputText: {
-    fontSize: 16,
-    textAlign: 'center',
-    minHeight: 80,
-    textAlignVertical: 'center',
-    width: '100%',
+  patientInfoValue: {
+    fontSize: 12,
+    color: Colors.textPrimary,
+    fontWeight: '500',
+    flex: 1,
+  },
+  microphoneContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 15,
+    position: 'relative',
+    height: 170, // Add height to accommodate the larger button
   },
   micButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    justifyContent: 'center',
+    width: 103,
+    height: 147,
+    borderRadius: 20,
+    backgroundColor: Colors.light,
     alignItems: 'center',
-    elevation: 3,
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  micImage: {
+    width: 50,
+    height: 50,
+  },
+  timerText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginTop: 15,
+    color: Colors.textPrimary,
+  },
+  pausedMessageContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.light,
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 10,
+    width: '100%',
+  },
+  errorDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: Colors.error,
+    marginRight: 8,
+  },
+  pausedMessageText: {
+    color: Colors.error,
+    fontSize: 12,
+    flex: 1,
+  },
+  transcriptionContainer: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 15,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-  },
-  buttonImage: {
-    width: 30,
-    height: 30,
-  },
-  resetButton: {
-    marginBottom: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: Colors.secondary,
-    borderRadius: 8,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
+    flex: 1,
   },
-  resetButtonText: {
-    color: 'white',
+  transcriptionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    marginBottom: 10,
+  },
+  transcriptionContent: {
+    maxHeight: 250,
+  },
+  transcriptionText: {
     fontSize: 14,
-    fontWeight: 'bold',
+    lineHeight: 20,
+    color: Colors.textSecondary,
   },
-  editButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+  actionButtonsContainer: {
+    marginTop: 'auto',
+    marginBottom: 20,
+  },
+  generateNotesButton: {
     backgroundColor: Colors.primary,
-    borderRadius: 8,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
+    borderRadius: 12,
+    padding: 15,
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  editButtonText: {
+  generateNotesText: {
     color: 'white',
-    fontSize: 14,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  endRecordingButton: {
+    backgroundColor: Colors.error,
+    borderRadius: 12,
+    padding: 15,
+    alignItems: 'center',
+  },
+  endRecordingText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
   errorText: {
     color: Colors.error,
-    marginBottom: 10,
+    marginVertical: 10,
     textAlign: 'center',
-  },
-  editingContainer: {
-    width: '100%',
-    alignItems: 'center',
-  },
-  submitButton: {
-    marginTop: 10,
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    backgroundColor: Colors.primary,
-    borderRadius: 8,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-  },
-  submitButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: 'bold',
   },
 });
 

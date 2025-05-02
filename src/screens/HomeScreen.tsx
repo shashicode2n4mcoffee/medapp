@@ -50,33 +50,6 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.content}>
-            {/* Patient Context Card */}
-            <View style={[
-              styles.patientCard,
-              { backgroundColor: isDarkMode ? Colors.darkGray : Colors.lightGreen }
-            ]}>
-              <Text style={[
-                styles.patientCardTitle,
-                { color: isDarkMode ? Colors.textLight : Colors.textPrimary }
-              ]}>
-                Patient Context
-              </Text>
-              <View style={styles.patientInfoTable}>
-                <View style={styles.patientInfoHeader}>
-                  <Text style={styles.patientInfoHeaderCell}>Name</Text>
-                  <Text style={styles.patientInfoHeaderCell}>Age</Text>
-                  <Text style={styles.patientInfoHeaderCell}>Gender</Text>
-                  <Text style={styles.patientInfoHeaderCell}>UID</Text>
-                </View>
-                <View style={styles.patientInfoRow}>
-                  <Text style={styles.patientInfoCell}>George Milton</Text>
-                  <Text style={styles.patientInfoCell}>43</Text>
-                  <Text style={styles.patientInfoCell}>Male</Text>
-                  <Text style={styles.patientInfoCell}>43587934</Text>
-                </View>
-              </View>
-            </View>
-            
             <View style={styles.speechContainer}>
               <Text style={[
                 styles.sectionTitle,
@@ -87,7 +60,18 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
               <SpeechToText 
                 onSpeechResult={handleSpeechResult}
                 onSubmit={handleSubmit}
+                onSaveNote={(text) => {
+                  console.log('Saving note:', text);
+                  // Handle note saving functionality here
+                }}
                 placeholder="Tap the microphone and start speaking"
+                patientInfo={{
+                  name: 'George Smith',
+                  age: '43',
+                  gender: 'Male',
+                  mrn: '430897134',
+                  uid: '430897134'
+                }}
               />
             </View>
 
