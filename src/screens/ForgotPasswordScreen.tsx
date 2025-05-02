@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, useColorScheme, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../theme/Colors';
@@ -12,7 +12,8 @@ type ForgotPasswordScreenProps = {
 };
 
 const ForgotPasswordScreen = ({ navigation }: ForgotPasswordScreenProps) => {
-  const isDarkMode = useColorScheme() === 'dark';
+  // Always use light mode for this screen
+  const isDarkMode = false;
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
   const [loading, setLoading] = useState(false);

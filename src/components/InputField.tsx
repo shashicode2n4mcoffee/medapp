@@ -1,41 +1,60 @@
 import React, { useState } from 'react';
-import { View, TextInput, Text, StyleSheet, TextInputProps, useColorScheme, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  ViewStyle,
+  TextStyle,
+  TextInputProps,
+  TouchableOpacity,
+  useColorScheme
+} from 'react-native';
 import { Colors } from '../theme/Colors';
 
 interface InputFieldProps extends TextInputProps {
-  label: string;
+  label?: string;
   error?: string;
-  secureTextEntry?: boolean;
+  containerStyle?: ViewStyle;
+  labelStyle?: TextStyle;
+  inputContainerStyle?: ViewStyle;
   showPasswordToggle?: boolean;
+  secureTextEntry?: boolean;
 }
 
 const InputField: React.FC<InputFieldProps> = ({
   label,
   error,
-  secureTextEntry = false,
+  containerStyle,
+  labelStyle,
+  inputContainerStyle,
   showPasswordToggle = false,
-  value,
-  onChangeText,
+  secureTextEntry = false,
   ...props
 }) => {
-  const isDarkMode = useColorScheme() === 'dark';
-  const [showPassword, setShowPassword] = useState(false);
+  const isDarkMode = false; // Force light mode
   const [isFocused, setIsFocused] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <View style={styles.container}>
-      <Text style={[
-        styles.label,
-        { color: isDarkMode ? Colors.lightGray : Colors.textSecondary }
-      ]}>
-        {label}
-      </Text>
+    <View style={[styles.container, containerStyle]}>
+      {label && (
+        <Text style={[
+          styles.label, 
+          { color: isDarkMode ? Colors.gray : Colors.textSecondary },
+          labelStyle
+        ]}>
+          {label}
+        </Text>
+      )}
       <View style={[
         styles.inputContainer,
         { 
           backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.6)',
-          borderColor: isFocused ? Colors.primary : 'transparent',
-        }
+          borderColor: isFocused ? Colors.primary : Colors.borderLight,
+          borderWidth: 1,
+        },
+        inputContainerStyle
       ]}>
         <TextInput
           style={[
@@ -46,8 +65,8 @@ const InputField: React.FC<InputFieldProps> = ({
           ]}
           placeholderTextColor={isDarkMode ? Colors.gray : Colors.textTertiary}
           secureTextEntry={secureTextEntry && !showPassword}
-          value={value}
-          onChangeText={onChangeText}
+          value={props.value}
+          onChangeText={props.onChangeText}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           autoCapitalize={secureTextEntry ? 'none' : 'sentences'}
@@ -64,48 +83,40 @@ const InputField: React.FC<InputFieldProps> = ({
           </TouchableOpacity>
         )}
       </View>
-      {error ? (
-        <Text style={styles.errorText}>{error}</Text>
-      ) : null}
+      {error && <Text style={styles.errorText}>{error}</Text>}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    width: '100%',
     marginBottom: 16,
+    width: '100%',
   },
   label: {
-    marginBottom: 6,
     fontSize: 14,
-    fontWeight: '500',
+    marginBottom: 8,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 48,
     borderRadius: 8,
-    borderWidth: 1,
-    overflow: 'hidden',
+    paddingHorizontal: 16,
+    height: 50,
   },
   input: {
     flex: 1,
-    height: '100%',
-    paddingHorizontal: 16,
     fontSize: 16,
+    height: '100%',
   },
   passwordToggle: {
-    paddingHorizontal: 16,
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
+    padding: 8,
   },
   errorText: {
     color: Colors.error,
     fontSize: 12,
     marginTop: 4,
-  },
+  }
 });
 
 export default InputField;

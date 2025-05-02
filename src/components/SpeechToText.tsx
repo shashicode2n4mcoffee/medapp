@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, PermissionsAndroid, useColorScheme, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, PermissionsAndroid, useColorScheme, TextInput, Image } from 'react-native';
 import Voice, { SpeechResultsEvent, SpeechErrorEvent } from '@react-native-voice/voice';
 import { Colors } from '../theme/Colors';
 import logger from '../utils/logger';
+
+// Import images
+const startIcon = require('../assets/start.png');
+const pauseIcon = require('../assets/pause.png');
 
 interface SpeechToTextProps {
   onSpeechResult?: (text: string) => void;
@@ -223,7 +227,10 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
     
     return (
       <TouchableOpacity 
-        style={styles.resultContainer}
+        style={[
+          styles.resultContainer,
+          { backgroundColor: isDarkMode ? 'rgba(50,50,50,0.8)' : 'rgba(245,245,245,0.9)' }
+        ]}
         activeOpacity={0.7}
         disabled={isListening}
         onPress={toggleEditing}
@@ -253,7 +260,7 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
           <Text
             style={[
               styles.resultText,
-              { color: isDarkMode ? Colors.textLight : Colors.textPrimary }
+              { color: isDarkMode ? Colors.textLight : Colors.textDark || '#000000' }
             ]}
           >
             {speechText}
@@ -283,9 +290,11 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
           onPress={toggleListening}
           activeOpacity={0.7}
         >
-          <Text style={styles.micButtonText}>
-            {isListening ? 'Stop' : 'Start'}
-          </Text>
+          <Image 
+            source={isListening ? pauseIcon : startIcon} 
+            style={styles.buttonImage} 
+            resizeMode="contain"
+          />
         </TouchableOpacity>
         
         <View style={styles.buttonActions}>
@@ -349,13 +358,15 @@ const styles = StyleSheet.create({
     width: '100%',
     minHeight: 80,
     borderRadius: 8,
-    backgroundColor: 'rgba(0,0,0,0.05)',
     padding: 16,
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
   },
   resultText: {
     fontSize: 16,
     textAlign: 'center',
+    fontWeight: '500',
   },
   editHintText: {
     fontSize: 12,
@@ -381,10 +392,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 3,
   },
-  micButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+  buttonImage: {
+    width: 30,
+    height: 30,
   },
   resetButton: {
     marginBottom: 8,

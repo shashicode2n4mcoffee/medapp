@@ -14,6 +14,7 @@ export const Colors = {
   // Light/dark mode colors
   light: '#e5f9ee', // Light mint background
   lightGray: '#F2F2F7',
+  lightGreen: '#e8f8e8', // Light green for patient context card
   gray: '#8E8E93',
   darkGray: '#636366',
   dark: '#1a1a1a',
@@ -27,4 +28,8 @@ export const Colors = {
   // Background colors
   backgroundLight: '#e5f9ee', // Light mint background
   backgroundDark: '#1a1a1a',
-};
+  
+  // Border colors for light mode
+  borderLight: '#DCE4E0', // Light border color that matches the mint theme
+  borderMedium: '#BFD1C9', // Medium border color for more emphasis
+}

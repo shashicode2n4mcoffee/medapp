@@ -108,30 +108,26 @@ app.post('/api/V2/account/auth/login/', (req, res) => {
   
   // Hardcoded response matching the specified format
   const mockResponse = {
-    "user_id": 0,
-    "practitioner_id": 0,
+    "user_id": 266,
+    "practitioner_id": 63,
     "practitioner_role": "doctor",
-    "first_name": "string",
-    "last_name": "string",
-    "timezone": "string",
-    "language": "strin",
+    "first_name": "Shashikumar",
+    "last_name": "Mamadapur",
+    "timezone": "UTC",
+    "language": "en",
     "has_accepted_terms": true,
-    "settings": {
-      "additionalProp1": "string",
-      "additionalProp2": "string",
-      "additionalProp3": "string"
-    },
-    "is_emr_linked": true,
+    "settings": {},
+    "is_emr_linked": false,
     "emr_system_details": {
-      "id": 0,
-      "emr_name": "string",
-      "emr_version": "string",
-      "emr_verbose_name": "string",
-      "emr_code": "string"
+      "id": 1,
+      "emr_name": "eClinicalWorks",
+      "emr_version": "v12",
+      "emr_verbose_name": "eClinicalWorks",
+      "emr_code": "eClinicalWorks_v12"
     },
-    "speciality": "string",
-    "email": "user@example.com",
-    "license_number": "string"
+    "speciality": "CARDIOLOGY",
+    "email": "shashi@zynix.ai",
+    "license_number": "123456789"
   };
   
   // Send the mock response

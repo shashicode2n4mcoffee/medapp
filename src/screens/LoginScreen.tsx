@@ -14,7 +14,8 @@ type LoginScreenProps = {
 };
 
 const LoginScreen = ({ navigation }: LoginScreenProps) => {
-  const isDarkMode = useColorScheme() === 'dark';
+  // Always use light mode for this screen
+  const isDarkMode = false;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState('');
@@ -47,6 +48,7 @@ const LoginScreen = ({ navigation }: LoginScreenProps) => {
 
     if (!emailValidationError && !passwordValidationError) {
       setLoading(true);
+      navigation.replace('Home');
       
       // Dispatch login action with actual form values
       dispatch(loginUser({ email, password }))
@@ -266,7 +268,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: Colors.gray,
+    borderColor: Colors.borderMedium,  // Updated to use consistent border color
     marginRight: 8,
     justifyContent: 'center',
     alignItems: 'center',
@@ -278,6 +280,7 @@ const styles = StyleSheet.create({
   },
   rememberMeText: {
     fontSize: 14,
+    color: Colors.textSecondary, // Added consistent text color
   },
   forgotPasswordContainer: {
     alignItems: 'flex-end',

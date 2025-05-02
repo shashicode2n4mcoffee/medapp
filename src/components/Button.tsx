@@ -55,8 +55,9 @@ const Button: React.FC<ButtonProps> = ({
   };
 
   const getBorderColor = () => {
+    if (disabled) return Colors.lightGray;
     if (variant === 'outline') {
-      return disabled ? Colors.gray : Colors.primary;
+      return Colors.primary;
     }
     return 'transparent';
   };

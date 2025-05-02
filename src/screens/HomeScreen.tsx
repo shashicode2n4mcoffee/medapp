@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, useColorScheme, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, useColorScheme, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../theme/Colors';
@@ -12,7 +12,8 @@ type HomeScreenProps = {
 };
 
 const HomeScreen = ({ navigation }: HomeScreenProps) => {
-  const isDarkMode = useColorScheme() === 'dark';
+  // Always use light mode for this screen
+  const isDarkMode = false;
   const [recognizedText, setRecognizedText] = useState<string>('');
   
   const handleLogout = () => {
@@ -28,51 +29,77 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
     // Handle the submitted text here
   };
   
+  const navigateToTranscribe = () => {
+    navigation.navigate('Transcribe');
+  };
+  
   return (
     <SafeAreaView 
       style={[
         styles.container, 
         { backgroundColor: isDarkMode ? Colors.dark : Colors.light }
       ]}
-      edges={['top', 'bottom']}
+      edges={['top', 'left', 'right']}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.content}>
-          <Text style={[
-            styles.title,
-            { color: isDarkMode ? Colors.textLight : Colors.textPrimary }
-          ]}>
-            Welcome to AIApp
-          </Text>
-          <Text style={[
-            styles.subtitle,
-            { color: isDarkMode ? Colors.gray : Colors.textSecondary }
-          ]}>
-            You are now logged in
-          </Text>
-          
-          <View style={styles.speechContainer}>
-            <Text style={[
-              styles.sectionTitle,
-              { color: isDarkMode ? Colors.textLight : Colors.textPrimary }
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoidingView}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.content}>
+            {/* Patient Context Card */}
+            <View style={[
+              styles.patientCard,
+              { backgroundColor: isDarkMode ? Colors.darkGray : Colors.lightGreen }
             ]}>
-              Speech Recognition
-            </Text>
-            <SpeechToText 
-              onSpeechResult={handleSpeechResult}
-              onSubmit={handleSubmit}
-              placeholder="Tap the microphone and start speaking"
+              <Text style={[
+                styles.patientCardTitle,
+                { color: isDarkMode ? Colors.textLight : Colors.textPrimary }
+              ]}>
+                Patient Context
+              </Text>
+              <View style={styles.patientInfoTable}>
+                <View style={styles.patientInfoHeader}>
+                  <Text style={styles.patientInfoHeaderCell}>Name</Text>
+                  <Text style={styles.patientInfoHeaderCell}>Age</Text>
+                  <Text style={styles.patientInfoHeaderCell}>Gender</Text>
+                  <Text style={styles.patientInfoHeaderCell}>UID</Text>
+                </View>
+                <View style={styles.patientInfoRow}>
+                  <Text style={styles.patientInfoCell}>George Milton</Text>
+                  <Text style={styles.patientInfoCell}>43</Text>
+                  <Text style={styles.patientInfoCell}>Male</Text>
+                  <Text style={styles.patientInfoCell}>43587934</Text>
+                </View>
+              </View>
+            </View>
+            
+            <View style={styles.speechContainer}>
+              <Text style={[
+                styles.sectionTitle,
+                { color: isDarkMode ? Colors.textLight : Colors.textPrimary }
+              ]}>
+                Speech Recognition
+              </Text>
+              <SpeechToText 
+                onSpeechResult={handleSpeechResult}
+                onSubmit={handleSubmit}
+                placeholder="Tap the microphone and start speaking"
+              />
+            </View>
+
+            <Button
+              title="Logout"
+              onPress={handleLogout}
+              variant="outline"
+              style={styles.logoutButton}
             />
           </View>
-
-          <Button
-            title="Logout"
-            onPress={handleLogout}
-            variant="outline"
-            style={styles.logoutButton}
-          />
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -99,6 +126,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 24,
   },
+  buttonContainer: {
+    width: '100%',
+    marginBottom: 20,
+  },
+  transcribeButton: {
+    marginBottom: 12,
+  },
   speechContainer: {
     width: '100%',
     marginBottom: 32,
@@ -111,7 +145,48 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     width: 200,
-  }
+  },
+  patientCard: {
+    width: '100%',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 32,
+  },
+  patientCardTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  patientInfoTable: {
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  patientInfoHeader: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    padding: 8,
+  },
+  patientInfoHeaderCell: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '500',
+    color: Colors.textSecondary,
+    textAlign: 'left',
+  },
+  patientInfoRow: {
+    flexDirection: 'row',
+    backgroundColor: 'white',
+    padding: 8,
+  },
+  patientInfoCell: {
+    flex: 1,
+    fontSize: 14,
+    color: Colors.textPrimary,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
 });
 
 export default HomeScreen;
