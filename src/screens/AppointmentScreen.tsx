@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, useColorScheme } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Image } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../theme/Colors';
@@ -16,7 +16,7 @@ interface Appointment {
   patientName: string;
   date: string;
   time: string;
-  type: 'ECW' | 'Admin';
+  type: 'ECW' | 'Adhoc';
 }
 
 const AppointmentScreen = ({ navigation }: AppointmentScreenProps) => {
@@ -26,18 +26,45 @@ const AppointmentScreen = ({ navigation }: AppointmentScreenProps) => {
   // Use the sidebar context
   const { isSidebarOpen } = useSidebar();
   
+  // State for filter and search
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dateFilter, setDateFilter] = useState('24/05/2024');
+  const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
+  
   // Mock data for appointments
   const [appointments, setAppointments] = useState<Appointment[]>([
     { id: '1', patientName: 'John Doe', date: '24/05/2024', time: '11:00 AM', type: 'ECW' },
-    { id: '2', patientName: 'John Smith', date: '24/05/2024', time: '11:00 AM', type: 'Admin' },
+    { id: '2', patientName: 'John Smith', date: '24/05/2024', time: '11:00 AM', type: 'Adhoc' },
     { id: '3', patientName: 'Michael Brown', date: '24/05/2024', time: '11:00 AM', type: 'ECW' },
     { id: '4', patientName: 'Emily White', date: '24/05/2024', time: '11:00 AM', type: 'ECW' },
-    { id: '5', patientName: 'John Doe', date: '24/05/2024', time: '11:00 AM', type: 'Admin' },
+    { id: '5', patientName: 'John Doe', date: '24/05/2024', time: '11:00 AM', type: 'Adhoc' },
   ]);
   
   // Current page and total pages for pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = Math.ceil(appointments.length / 5);
+  const itemsPerPage = 6; // Based on the UI design
+  const totalPages = 15; // For example purposes as shown in the UI
+  const totalAppointments = 8487; // From the UI count
+  
+  // Filter appointments based on search query and other filters
+  const filteredAppointments = appointments.filter(appointment => {
+    // Apply search filter
+    if (searchQuery && !appointment.patientName.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return false;
+    }
+    
+    // Apply date filter if needed
+    if (dateFilter && appointment.date !== dateFilter) {
+      return false;
+    }
+    
+    // Apply type filter
+    if (selectedFilter && appointment.type !== selectedFilter) {
+      return false;
+    }
+    
+    return true;
+  });
   
   const renderAppointmentItem = ({ item }: { item: Appointment }) => (
     <View style={styles.appointmentRow}>
@@ -47,7 +74,7 @@ const AppointmentScreen = ({ navigation }: AppointmentScreenProps) => {
       <View style={styles.typeCell}>
         <View style={[
           styles.typeTag,
-          item.type === 'ECW' ? styles.ecwTag : styles.adminTag
+          item.type === 'ECW' ? styles.ecwTag : styles.adhocTag
         ]}>
           <Text style={styles.typeText}>{item.type}</Text>
         </View>
@@ -67,33 +94,90 @@ const AppointmentScreen = ({ navigation }: AppointmentScreenProps) => {
   const renderPagination = () => (
     <View style={styles.paginationContainer}>
       <TouchableOpacity 
-        style={[styles.paginationArrow, currentPage === 1 && styles.paginationArrowDisabled]} 
+        style={styles.paginationArrow} 
         onPress={() => currentPage > 1 && setCurrentPage(currentPage - 1)}
         disabled={currentPage === 1}
       >
         <Text style={styles.paginationArrowText}>‹</Text>
       </TouchableOpacity>
-      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-        <TouchableOpacity 
-          key={`page-${page}`}
-          style={[
-            styles.paginationButton,
-            currentPage === page && styles.paginationButtonActive
-          ]}
-          onPress={() => setCurrentPage(page)}
-        >
-          <Text 
-            style={[
-              styles.paginationButtonText,
-              currentPage === page && styles.paginationButtonTextActive
-            ]}
-          >
-            {page}
-          </Text>
-        </TouchableOpacity>
-      ))}
+      
+      {/* First page */}
       <TouchableOpacity 
-        style={[styles.paginationArrow, currentPage === totalPages && styles.paginationArrowDisabled]} 
+        style={[
+          styles.paginationButton,
+          currentPage === 1 && styles.paginationButtonActive
+        ]}
+        onPress={() => setCurrentPage(1)}
+      >
+        <Text 
+          style={[
+            styles.paginationButtonText,
+            currentPage === 1 && styles.paginationButtonTextActive
+          ]}
+        >
+          1
+        </Text>
+      </TouchableOpacity>
+      
+      {/* Second page */}
+      <TouchableOpacity 
+        style={[
+          styles.paginationButton,
+          currentPage === 2 && styles.paginationButtonActive
+        ]}
+        onPress={() => setCurrentPage(2)}
+      >
+        <Text 
+          style={[
+            styles.paginationButtonText,
+            currentPage === 2 && styles.paginationButtonTextActive
+          ]}
+        >
+          2
+        </Text>
+      </TouchableOpacity>
+      
+      {/* Third page */}
+      <TouchableOpacity 
+        style={[
+          styles.paginationButton,
+          currentPage === 3 && styles.paginationButtonActive
+        ]}
+        onPress={() => setCurrentPage(3)}
+      >
+        <Text 
+          style={[
+            styles.paginationButtonText,
+            currentPage === 3 && styles.paginationButtonTextActive
+          ]}
+        >
+          3
+        </Text>
+      </TouchableOpacity>
+      
+      {/* Ellipsis */}
+      <Text style={styles.paginationEllipsis}>...</Text>
+      
+      {/* Last Page */}
+      <TouchableOpacity 
+        style={[
+          styles.paginationButton,
+          currentPage === totalPages && styles.paginationButtonActive
+        ]}
+        onPress={() => setCurrentPage(totalPages)}
+      >
+        <Text 
+          style={[
+            styles.paginationButtonText,
+            currentPage === totalPages && styles.paginationButtonTextActive
+          ]}
+        >
+          {totalPages}
+        </Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity 
+        style={styles.paginationArrow}
         onPress={() => currentPage < totalPages && setCurrentPage(currentPage + 1)}
         disabled={currentPage === totalPages}
       >
@@ -104,7 +188,7 @@ const AppointmentScreen = ({ navigation }: AppointmentScreenProps) => {
 
   return (
     <SafeAreaView 
-      style={[styles.container, { backgroundColor: isDarkMode ? Colors.dark : Colors.light }]}
+      style={[styles.container, { backgroundColor: Colors.light }]}
       edges={['bottom', 'left', 'right']}
     >
       {/* Sidebar Component */}
@@ -119,25 +203,44 @@ const AppointmentScreen = ({ navigation }: AppointmentScreenProps) => {
       
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Appointments</Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.searchButton}>
-            <Text style={styles.searchIcon}>🔍</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.filterButton}>
-            <Text style={styles.filterIcon}>≡</Text>
-          </TouchableOpacity>
+      </View>
+      
+      {/* Search and Filter Bar */}
+      <View style={styles.searchFilterContainer}>
+        <View style={styles.searchContainer}>
+          <Image 
+            source={require('../assets/Search.png')} 
+            style={styles.searchIcon}
+          />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
         </View>
+        <TouchableOpacity style={styles.filterButton}>
+          <Text style={styles.filterIcon}>≡</Text>
+        </TouchableOpacity>
+      </View>
+      
+      {/* Date and Type Filter */}
+      <View style={styles.filterOptionsContainer}>
+        <TouchableOpacity style={styles.dateSelectorContainer}>
+          <Text style={styles.dateText}>Today</Text>
+          <Text style={styles.downArrowIcon}>▼</Text>
+        </TouchableOpacity>
       </View>
       
       <View style={styles.countContainer}>
-        <Text style={styles.countText}>Count: 8487</Text>
-        <Text style={styles.pageInfo}>Page Size: 6</Text>
+        <Text style={styles.countText}>Count: {totalAppointments}</Text>
+        <Text style={styles.pageInfo}>Page Size: {itemsPerPage}</Text>
       </View>
       
       <View style={styles.tableContainer}>
         {renderHeader()}
         <FlatList
-          data={appointments}
+          data={filteredAppointments}
           renderItem={renderAppointmentItem}
           keyExtractor={item => item.id}
           scrollEnabled={false}
@@ -166,21 +269,62 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: Colors.textPrimary,
   },
-  headerActions: {
+  searchFilterContainer: {
     flexDirection: 'row',
+    marginBottom: 12,
     alignItems: 'center',
   },
-  searchButton: {
-    marginRight: 8,
+  searchContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginRight: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    paddingLeft: 6,
   },
   searchIcon: {
-    fontSize: 20,
+    width: 16,
+    height: 16,
+    tintColor: Colors.textTertiary,
   },
   filterButton: {
-    padding: 2,
+    padding: 10,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   filterIcon: {
     fontSize: 20,
+    color: Colors.textSecondary,
+  },
+  filterOptionsContainer: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  dateSelectorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  dateText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    marginRight: 5,
+  },
+  downArrowIcon: {
+    fontSize: 12,
+    color: Colors.textSecondary,
   },
   countContainer: {
     flexDirection: 'row',
@@ -249,8 +393,8 @@ const styles = StyleSheet.create({
   ecwTag: {
     backgroundColor: Colors.lightGreen,
   },
-  adminTag: {
-    backgroundColor: '#FFF3CD', // Light yellow for Admin tags
+  adhocTag: {
+    backgroundColor: '#FFF3CD', // Light yellow for Adhoc tags
   },
   typeText: {
     fontSize: 12,
@@ -270,6 +414,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginHorizontal: 4,
+    backgroundColor: 'white',
   },
   paginationButtonActive: {
     backgroundColor: Colors.primary,
@@ -288,9 +433,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginHorizontal: 4,
+    backgroundColor: 'white',
   },
-  paginationArrowDisabled: {
-    opacity: 0.5,
+  paginationEllipsis: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    marginHorizontal: 4,
   },
   paginationArrowText: {
     fontSize: 20,
