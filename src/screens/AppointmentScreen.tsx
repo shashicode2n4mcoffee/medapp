@@ -4,6 +4,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../theme/Colors';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import Sidebar from '../components/Sidebar';
+import { useSidebar } from '../context/SidebarContext';
 
 type AppointmentScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Appointments'>;
@@ -20,6 +22,9 @@ interface Appointment {
 const AppointmentScreen = ({ navigation }: AppointmentScreenProps) => {
   // Always use light mode for this screen
   const isDarkMode = false;
+  
+  // Use the sidebar context
+  const { isSidebarOpen } = useSidebar();
   
   // Mock data for appointments
   const [appointments, setAppointments] = useState<Appointment[]>([
@@ -102,6 +107,16 @@ const AppointmentScreen = ({ navigation }: AppointmentScreenProps) => {
       style={[styles.container, { backgroundColor: isDarkMode ? Colors.dark : Colors.light }]}
       edges={['bottom', 'left', 'right']}
     >
+      {/* Sidebar Component */}
+      <Sidebar 
+        isVisible={isSidebarOpen}
+        onClose={() => {}}
+        userInfo={{
+          name: 'George Milton',
+          role: 'Doctor',
+        }}
+      />
+      
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Appointments</Text>
         <View style={styles.headerActions}>

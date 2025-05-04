@@ -4,7 +4,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../theme/Colors';
 import Button from '../components/Button';
+import Sidebar from '../components/Sidebar';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { useSidebar } from '../context/SidebarContext';
 
 type HomeScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -13,6 +15,9 @@ type HomeScreenProps = {
 const HomeScreen = ({ navigation }: HomeScreenProps) => {
   // Always use light mode for this screen
   const isDarkMode = false;
+  
+  // Use the sidebar context
+  const { isSidebarOpen } = useSidebar();
   
   const handleLogout = () => {
     navigation.replace('Login');
@@ -34,6 +39,16 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
       ]}
       edges={['bottom', 'left', 'right']}
     >
+      {/* Sidebar Component */}
+      <Sidebar 
+        isVisible={isSidebarOpen}
+        onClose={() => {}}
+        userInfo={{
+          name: 'George Milton',
+          role: 'Doctor',
+        }}
+      />
+      
       <View style={styles.content}>
         <Text style={[
           styles.title,

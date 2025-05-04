@@ -3,13 +3,16 @@ import { View, Image, StyleSheet, StatusBar, Platform, TouchableOpacity } from '
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../theme/Colors';
 
-const Header = () => {
+interface HeaderProps {
+  onMenuPress?: () => void;
+}
+
+const Header = ({ onMenuPress }: HeaderProps) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.backgroundLight} />
       <View style={styles.container}>
         <View style={styles.leftContainer}>
-
           <Image 
             source={require('../assets/logo.png')} 
             style={styles.logo}
@@ -31,7 +34,7 @@ const Header = () => {
               resizeMode="contain"
             />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.menuButton}>
+          <TouchableOpacity style={styles.menuButton} onPress={onMenuPress}>
             <Image 
               source={require('../assets/menu.png')} 
               style={styles.icon}

@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, useColorScheme, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../theme/Colors';
-import Button from '../components/Button';
 import SpeechToText from '../components/SpeechToText';
+import Sidebar from '../components/Sidebar';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { RouteProp } from '@react-navigation/native';
+import { useSidebar } from '../context/SidebarContext';
 
 type TranscribeScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Transcribe'>;
+  route: RouteProp<RootStackParamList, 'Transcribe'>;
 };
 
 const TranscribeScreen = ({ navigation }: TranscribeScreenProps) => {
@@ -16,6 +19,9 @@ const TranscribeScreen = ({ navigation }: TranscribeScreenProps) => {
   const isDarkMode = false;
   const [recognizedText, setRecognizedText] = useState<string>('');
   const [audioData, setAudioData] = useState<any[]>([]);
+  
+  // Use the sidebar context
+  const { isSidebarOpen } = useSidebar();
   
   const handleSpeechResult = (text: string) => {
     setRecognizedText(text);
@@ -26,9 +32,7 @@ const TranscribeScreen = ({ navigation }: TranscribeScreenProps) => {
     if (audio) {
       setAudioData(audio);
       console.log('Audio data length:', audio.length);
-      // Here you would send both text and audio to your backend
     }
-    // Handle the submitted text here
   };
   
   return (
@@ -39,6 +43,16 @@ const TranscribeScreen = ({ navigation }: TranscribeScreenProps) => {
       ]}
       edges={['bottom', 'left', 'right']}
     >
+      {/* Sidebar Component with global context state */}
+      <Sidebar 
+        isVisible={isSidebarOpen}
+        onClose={() => {}}
+        userInfo={{
+          name: 'George Milton',
+          role: 'Doctor',
+        }}
+      />
+      
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingView}
@@ -54,7 +68,6 @@ const TranscribeScreen = ({ navigation }: TranscribeScreenProps) => {
                 onSubmit={handleSubmit}
                 onSaveNote={(text) => {
                   console.log('Saving note:', text);
-                  // Handle note saving functionality here
                 }}
                 placeholder="Tap the microphone and start speaking"
                 patientInfo={{
@@ -85,28 +98,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
   speechContainer: {
     width: '100%',
     marginBottom: 32,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  backButton: {
-    width: 200,
   },
   keyboardAvoidingView: {
     flex: 1,

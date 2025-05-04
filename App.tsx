@@ -11,6 +11,7 @@ import AppNavigator from './src/navigation/AppNavigator';
 import { Colors } from './src/theme/Colors';
 import { setupInterceptors } from './src/axios';
 import { APP } from './src/utils/literals/appliterals';
+import { SidebarProvider } from './src/context/SidebarContext';
 
 function App(): React.JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
@@ -24,11 +25,13 @@ function App(): React.JSX.Element {
     <Provider store={store}>
       <View style={styles.container}>
         <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-          <StatusBar
-            barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-            backgroundColor={isDarkMode ? Colors.dark : Colors.light}
-          />
-          <AppNavigator />
+          <SidebarProvider>
+            <StatusBar
+              barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+              backgroundColor={isDarkMode ? Colors.dark : Colors.light}
+            />
+            <AppNavigator />
+          </SidebarProvider>
         </SafeAreaProvider>
       </View>
     </Provider>
