@@ -37,7 +37,7 @@ const TranscribeScreen = ({ navigation }: TranscribeScreenProps) => {
         styles.container, 
         { backgroundColor: isDarkMode ? Colors.dark : Colors.light }
       ]}
-      edges={['top', 'left', 'right']}
+      edges={['bottom', 'left', 'right']}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

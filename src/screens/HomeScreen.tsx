@@ -32,7 +32,7 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
         styles.container, 
         { backgroundColor: isDarkMode ? Colors.dark : Colors.light }
       ]}
-      edges={['top', 'left', 'right']}
+      edges={['bottom', 'left', 'right']}
     >
       <View style={styles.content}>
         <Text style={[

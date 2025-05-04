@@ -100,7 +100,7 @@ const AppointmentScreen = ({ navigation }: AppointmentScreenProps) => {
   return (
     <SafeAreaView 
       style={[styles.container, { backgroundColor: isDarkMode ? Colors.dark : Colors.light }]}
-      edges={['top', 'left', 'right']}
+      edges={['bottom', 'left', 'right']}
     >
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Appointments</Text>
