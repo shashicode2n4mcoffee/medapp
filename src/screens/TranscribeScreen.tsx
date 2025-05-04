@@ -49,12 +49,6 @@ const TranscribeScreen = ({ navigation }: TranscribeScreenProps) => {
         >
           <View style={styles.content}>
             <View style={styles.speechContainer}>
-              <Text style={[
-                styles.sectionTitle,
-                { color: isDarkMode ? Colors.textLight : Colors.textPrimary }
-              ]}>
-                Speech Recognition
-              </Text>
               <SpeechToText 
                 onSpeechResult={handleSpeechResult}
                 onSubmit={handleSubmit}
