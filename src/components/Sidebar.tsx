@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
 import { Colors } from '../theme/Colors';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useSidebar } from '../context/SidebarContext';
@@ -18,45 +18,48 @@ interface SidebarProps {
 
 const Sidebar = ({ isVisible, userInfo }: SidebarProps) => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute();
   const { closeSidebar } = useSidebar();
 
   if (!isVisible) return null;
+
+  const currentScreen = route.name as keyof RootStackParamList;
 
   const menuItems = [
     { 
       id: 'transcribe', 
       title: 'Transcribe Now', 
-      icon: require('../assets/logo.png'),
+      icon: require('../assets/transcribe.png'),
       screen: 'Transcribe' 
     },
     { 
       id: 'appointments', 
       title: 'Appointments', 
-      icon: require('../assets/logo.png'),
+      icon: require('../assets/appointment.png'),
       screen: 'Appointments' 
     },
     { 
       id: 'patients', 
       title: 'Patients', 
-      icon: require('../assets/logo.png'),
+      icon: require('../assets/patient.png'),
       screen: 'Home' 
     },
     { 
       id: 'settings', 
       title: 'Settings', 
-      icon: require('../assets/logo.png'),
+      icon: require('../assets/setting.png'),
       screen: 'Home' 
     },
     { 
       id: 'help', 
       title: 'Help & Support', 
-      icon: require('../assets/logo.png'),
+      icon: require('../assets/help.png'),
       screen: 'Home' 
     },
     { 
       id: 'logout', 
       title: 'Log Out', 
-      icon: require('../assets/logo.png'),
+      icon: require('../assets/logout.png'),
       screen: 'Login' 
     },
   ];
@@ -88,15 +91,21 @@ const Sidebar = ({ isVisible, userInfo }: SidebarProps) => {
                 key={item.id}
                 style={[
                   styles.menuItem,
-                  item.id === 'transcribe' && styles.activeMenuItem
+                  item.screen === currentScreen && styles.activeMenuItem
                 ]}
                 onPress={() => handleNavigation(item.screen as keyof RootStackParamList)}
               >
-                <Image source={item.icon} style={styles.menuIcon} />
+                <Image 
+                  source={item.icon} 
+                  style={[
+                    styles.menuIcon,
+                    item.screen === currentScreen && styles.activeMenuIcon
+                  ]} 
+                />
                 <Text 
                   style={[
                     styles.menuText,
-                    item.id === 'transcribe' && styles.activeMenuText
+                    item.screen === currentScreen && styles.activeMenuText
                   ]}
                 >
                   {item.title}
@@ -184,6 +193,9 @@ const styles = StyleSheet.create({
     height: 20,
     marginRight: 10,
     tintColor: Colors.textSecondary,
+  },
+  activeMenuIcon: {
+    tintColor: Colors.textLight,
   },
   menuText: {
     fontSize: 14,
