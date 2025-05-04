@@ -22,6 +22,10 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
     navigation.navigate('Transcribe');
   };
   
+  const navigateToAppointments = () => {
+    navigation.navigate('Appointments');
+  };
+  
   return (
     <SafeAreaView 
       style={[
@@ -50,6 +54,12 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
             title="Start Transcription"
             onPress={navigateToTranscribe}
             style={styles.transcribeButton}
+          />
+          
+          <Button
+            title="View Appointments"
+            onPress={navigateToAppointments}
+            style={styles.appointmentsButton}
           />
           
           <Button
@@ -91,6 +101,9 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   transcribeButton: {
+    marginBottom: 16,
+  },
+  appointmentsButton: {
     marginBottom: 16,
   },
   logoutButton: {
