@@ -14,11 +14,20 @@ type TranscribeScreenProps = {
   route: RouteProp<RootStackParamList, 'Transcribe'>;
 };
 
-const TranscribeScreen = ({ navigation }: TranscribeScreenProps) => {
+const TranscribeScreen = ({ navigation, route }: TranscribeScreenProps) => {
   // Always use light mode for this screen
   const isDarkMode = false;
   const [recognizedText, setRecognizedText] = useState<string>('');
   const [audioData, setAudioData] = useState<any[]>([]);
+  
+  // Get patient info from route params or use default values
+  const patientInfo = route.params?.patientInfo || {
+    name: 'George Smith',
+    age: '43',
+    gender: 'Male',
+    mrn: '430897134',
+    uid: '430897134'
+  };
   
   // Use the sidebar context
   const { isSidebarOpen } = useSidebar();
@@ -71,11 +80,11 @@ const TranscribeScreen = ({ navigation }: TranscribeScreenProps) => {
                 }}
                 placeholder="Tap the microphone and start speaking"
                 patientInfo={{
-                  name: 'George Smith',
-                  age: '43',
-                  gender: 'Male',
-                  mrn: '430897134',
-                  uid: '430897134'
+                  name: patientInfo.name,
+                  age: patientInfo.age,
+                  gender: patientInfo.gender,
+                  mrn: patientInfo.mrn,
+                  uid: patientInfo.mrn // Using mrn as uid since it wasn't provided from HomeScreen
                 }}
               />
             </View>
