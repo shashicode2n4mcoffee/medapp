@@ -3,6 +3,7 @@ import { createLogger } from 'redux-logger';
 import { useDispatch, useSelector } from 'react-redux';
 import type { TypedUseSelectorHook } from 'react-redux';
 import authReducer from './slices/authSlice';
+import appointmentsReducer from './slices/appointmentsSlice';
 import logger from '../utils/logger';
 
 // Custom middleware to log actions and state
@@ -41,6 +42,7 @@ if (__DEV__) {
 export const store = configureStore({
   reducer: {
     auth: authReducer,
+    appointments: appointmentsReducer,
     // Add more reducers here as your app grows
   },
   middleware: (getDefaultMiddleware) =>

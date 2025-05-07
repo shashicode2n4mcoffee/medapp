@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   TextInput,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {SafeAreaView} from 'react-native-safe-area-context';
@@ -14,67 +15,78 @@ import {Colors} from '../theme/Colors';
 import {RootStackParamList} from '../navigation/AppNavigator';
 import Sidebar from '../components/Sidebar';
 import {useSidebar} from '../context/SidebarContext';
+import {useAppDispatch, useAppSelector} from '../redux/store';
+import {fetchAppointments, updateParams} from '../redux/slices/appointmentsSlice';
+import {Appointment as AppointmentType} from '../api/appointmentService';
+import {format, parseISO} from 'date-fns';
 
 type AppointmentScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Appointments'>;
 };
 
-interface Appointment {
+// Local appointment display type
+interface AppointmentDisplay {
   id: string;
   patientName: string;
   date: string;
   time: string;
   type: 'ECW' | 'Adhoc';
+  status: string;
 }
 
 const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
   const {isSidebarOpen} = useSidebar();
-
+  const dispatch = useAppDispatch();
+  
   const [searchQuery, setSearchQuery] = useState('');
-  const [dateFilter, setDateFilter] = useState('24/05/2024');
+  const [dateFilter, setDateFilter] = useState('');
 
-  const [appointments, setAppointments] = useState<Appointment[]>([
-    {
-      id: '1',
-      patientName: 'John Doe',
-      date: '24/05/2024',
-      time: '11:00 AM',
-      type: 'ECW',
-    },
-    {
-      id: '2',
-      patientName: 'John Smith',
-      date: '24/05/2024',
-      time: '11:00 AM',
-      type: 'Adhoc',
-    },
-    {
-      id: '3',
-      patientName: 'Michael Brown',
-      date: '24/05/2024',
-      time: '11:00 AM',
-      type: 'ECW',
-    },
-    {
-      id: '4',
-      patientName: 'Emily White',
-      date: '24/05/2024',
-      time: '11:00 AM',
-      type: 'ECW',
-    },
-    {
-      id: '5',
-      patientName: 'John Doe',
-      date: '24/05/2024',
-      time: '11:00 AM',
-      type: 'Adhoc',
-    },
-  ]);
+  // Get appointments state from Redux
+  const {appointments = [], loading = false, error = null, total: totalAppointments = 0, currentParams} = 
+    useAppSelector(state => state.appointments || {});
 
-  const totalAppointments = 9467;
-  const pageSize = 5;
+  // Default page size if currentParams is undefined
+  const pageSize = currentParams?.limit || 30;
 
-  const filteredAppointments = appointments.filter(appointment => {
+  // Map API appointments to display format
+  const mapAppointmentsForDisplay = (apiAppointments: AppointmentType[]): AppointmentDisplay[] => {
+    if (!apiAppointments || !Array.isArray(apiAppointments)) {
+      return [];
+    }
+    
+    return apiAppointments.map(appointment => {
+      // Parse appointment date/time, handle potential invalid dates
+      let appointmentDate;
+      try {
+        appointmentDate = parseISO(appointment.appointment_time);
+        // Check if date is valid
+        if (isNaN(appointmentDate.getTime())) {
+          appointmentDate = new Date(); // Fallback to current date
+        }
+      } catch (e) {
+        appointmentDate = new Date(); // Fallback to current date
+      }
+      
+      return {
+        id: appointment.id.toString(),
+        patientName: appointment.appointment_name || 'No Name',
+        date: format(appointmentDate, 'dd/MM/yyyy'),
+        time: format(appointmentDate, 'hh:mm a'),
+        type: appointment.appointment_type === 'adhoc' ? 'Adhoc' : 'ECW',
+        status: appointment.appointment_status
+      };
+    });
+  };
+
+  // Load appointments when component mounts
+  useEffect(() => {
+    dispatch(fetchAppointments());
+  }, [dispatch]);
+
+  // Filter appointments by search query and date
+  const displayAppointments = mapAppointmentsForDisplay(appointments);
+  
+  const filteredAppointments = displayAppointments.filter(appointment => {
     if (
       searchQuery &&
       !appointment.patientName.toLowerCase().includes(searchQuery.toLowerCase())
@@ -89,7 +101,7 @@ const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
     return true;
   });
 
-  const renderAppointmentItem = ({item}: {item: Appointment}) => (
+  const renderAppointmentItem = ({item}: {item: AppointmentDisplay}) => (
     <View style={styles.appointmentRow}>
       <Text style={styles.patientNameCell}>{item.patientName}</Text>
       <Text style={styles.dateCell}>{item.date}</Text>
@@ -114,6 +126,18 @@ const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
       <Text style={styles.headerCell}>Type of</Text>
     </View>
   );
+  
+  // Update date filter to today
+  const handleSelectToday = () => {
+    const today = new Date();
+    const formattedDate = format(today, 'yyyy-MM-dd');
+    
+    dispatch(updateParams({
+      appointment_date_start: formattedDate,
+      appointment_date_end: formattedDate
+    }));
+    dispatch(fetchAppointments());
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
@@ -152,7 +176,9 @@ const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
               />
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.dateSelector}>
+            <TouchableOpacity 
+              style={styles.dateSelector}
+              onPress={handleSelectToday}>
               <Text style={styles.dateText}>Today</Text>
               <Text style={styles.downArrow}>▼</Text>
             </TouchableOpacity>
@@ -165,12 +191,28 @@ const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
           
           <View style={styles.tableContainer}>
             {renderHeader()}
-            <FlatList
-              data={filteredAppointments}
-              renderItem={renderAppointmentItem}
-              keyExtractor={item => item.id}
-              style={styles.appointmentList}
-            />
+            
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={Colors.primary} />
+              </View>
+            ) : error ? (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={filteredAppointments}
+                renderItem={renderAppointmentItem}
+                keyExtractor={item => item.id}
+                style={styles.appointmentList}
+                ListEmptyComponent={
+                  <View style={styles.emptyContainer}>
+                    <Text style={styles.emptyText}>No appointments found</Text>
+                  </View>
+                }
+              />
+            )}
           </View>
         </View>
       </View>
@@ -186,16 +228,16 @@ const styles = StyleSheet.create({
   mainContent: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingVertical: 15,
   },
   contentWrapper: {
     flex: 1,
+    paddingVertical: 20,
   },
   headingText: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: '600',
+    marginBottom: 20,
     color: Colors.textPrimary,
-    marginBottom: 15,
   },
   searchRow: {
     flexDirection: 'row',
@@ -207,53 +249,59 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'white',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: '#EEEEEE',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
   searchIcon: {
-    width: 16,
-    height: 16,
-    tintColor: '#999',
-    marginRight: 5,
+    width: 20,
+    height: 20,
+    marginRight: 10,
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 15,
     color: Colors.textPrimary,
-    padding: 0,
   },
   filterButton: {
-    padding: 10,
     backgroundColor: 'white',
-    borderRadius: 8,
-    marginRight: 8,
+    width: 44,
+    height: 44,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#EEEEEE',
+    marginHorizontal: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
   filterIcon: {
-    width: 16,
-    height: 16,
-    tintColor: '#999',
+    width: 20,
+    height: 20,
   },
   dateSelector: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#EEEEEE',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
   dateText: {
-    fontSize: 14,
-    color: Colors.textSecondary,
+    fontSize: 15,
+    color: Colors.textPrimary,
     marginRight: 5,
   },
   downArrow: {
@@ -342,6 +390,32 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     color: Colors.textPrimary,
+  },
+  loadingContainer: {
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    color: 'red',
+    textAlign: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  emptyText: {
+    color: Colors.textSecondary,
+    fontSize: 16,
   }
 });
 
