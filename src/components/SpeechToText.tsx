@@ -351,7 +351,6 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
             source={isListening && !isPaused ? pauseIcon : micIcon} 
             style={[
               styles.micImage, 
-              isListening && !isPaused && { tintColor: Colors.primary }
             ]} 
             resizeMode="contain"
           />
@@ -461,15 +460,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 5,
   },
   micImage: {
-    width: 50,
-    height: 50,
+    width: 100,
+    height: 100,
   },
   timerText: {
     fontSize: 24,
