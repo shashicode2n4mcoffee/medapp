@@ -28,18 +28,14 @@ interface Appointment {
 }
 
 const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
-  // Always use light mode for this screen
   const isDarkMode = false;
 
-  // Use the sidebar context
   const {isSidebarOpen} = useSidebar();
 
-  // State for filter and search
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFilter, setDateFilter] = useState('24/05/2024');
   const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
 
-  // Mock data for appointments
   const [appointments, setAppointments] = useState<Appointment[]>([
     {
       id: '1',
@@ -78,15 +74,12 @@ const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
     },
   ]);
 
-  // Current page and total pages for pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6; // Based on the UI design
-  const totalPages = 15; // For example purposes as shown in the UI
-  const totalAppointments = 8487; // From the UI count
+  const itemsPerPage = 6; 
+  const totalPages = 15; 
+  const totalAppointments = 8487; 
 
-  // Filter appointments based on search query and other filters
   const filteredAppointments = appointments.filter(appointment => {
-    // Apply search filter
     if (
       searchQuery &&
       !appointment.patientName.toLowerCase().includes(searchQuery.toLowerCase())
@@ -94,12 +87,10 @@ const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
       return false;
     }
 
-    // Apply date filter if needed
     if (dateFilter && appointment.date !== dateFilter) {
       return false;
     }
 
-    // Apply type filter
     if (selectedFilter && appointment.type !== selectedFilter) {
       return false;
     }
@@ -142,7 +133,6 @@ const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
         <Text style={styles.paginationArrowText}>‹</Text>
       </TouchableOpacity>
 
-      {/* First page */}
       <TouchableOpacity
         style={[
           styles.paginationButton,
@@ -158,7 +148,6 @@ const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
         </Text>
       </TouchableOpacity>
 
-      {/* Second page */}
       <TouchableOpacity
         style={[
           styles.paginationButton,
@@ -174,7 +163,6 @@ const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
         </Text>
       </TouchableOpacity>
 
-      {/* Third page */}
       <TouchableOpacity
         style={[
           styles.paginationButton,
@@ -190,10 +178,8 @@ const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
         </Text>
       </TouchableOpacity>
 
-      {/* Ellipsis */}
       <Text style={styles.paginationEllipsis}>...</Text>
 
-      {/* Last Page */}
       <TouchableOpacity
         style={[
           styles.paginationButton,
@@ -224,7 +210,6 @@ const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
     <SafeAreaView
       style={[styles.container, {backgroundColor: Colors.light}]}
       edges={['bottom', 'left', 'right']}>
-      {/* Sidebar Component */}
       <Sidebar
         isVisible={isSidebarOpen}
         onClose={() => {}}
@@ -234,11 +219,6 @@ const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
         }}
       />
 
-      {/* <View style={styles.header}>
-        <Text style={styles.headerTitle}>Appointments</Text>
-      </View> */}
-
-      {/* Search and Filter Bar */}
       <View style={styles.searchFilterContainer}>
         <Text style={styles.headerTitle}>Appointments</Text>
         <View style={styles.searchContainer}>
@@ -261,14 +241,6 @@ const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
           <Text style={styles.downArrowIcon}>▼</Text>
         </TouchableOpacity>
       </View>
-
-      {/* Date and Type Filter */}
-      {/* <View style={styles.filterOptionsContainer}>
-        <TouchableOpacity style={styles.dateSelectorContainer}>
-          <Text style={styles.dateText}>Today</Text>
-          <Text style={styles.downArrowIcon}>▼</Text>
-        </TouchableOpacity>
-      </View> */}
 
       <View style={styles.countContainer}>
         <Text style={styles.countText}>Count: {totalAppointments}</Text>

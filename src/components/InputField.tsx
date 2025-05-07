@@ -32,7 +32,7 @@ const InputField: React.FC<InputFieldProps> = ({
   secureTextEntry = false,
   ...props
 }) => {
-  const isDarkMode = false; // Force light mode
+  const isDarkMode = false;
   const [isFocused, setIsFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 

@@ -1,7 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { authService } from '../../api';
 
-// Define types for our state
 interface EmrSystemDetails {
   id: number;
   emr_name: string;
@@ -37,19 +36,16 @@ interface AuthState {
   error: string | null;
 }
 
-// Initial state
 const initialState: AuthState = {
   user: null,
   loading: false,
   error: null,
 };
 
-// Define the type for loginUser thunk returned payload
 interface LoginUserPayload {
   user: User;
 }
 
-// Create login thunk action using authService
 export const loginUser = createAsyncThunk<
   LoginUserPayload,
   { email: string; password: string },
@@ -67,23 +63,19 @@ export const loginUser = createAsyncThunk<
         );
       }
       
-      // Return the user data from response.data
       return {
         user: response.data as User,
       };
     } catch (error: any) {
-      // Fallback error handling
       return rejectWithValue(error.message || 'An unknown error occurred during login');
     }
   }
 );
 
-// Create auth slice
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    // Manual actions
     logout: (state) => {
       state.user = null;
       state.error = null;
@@ -94,18 +86,15 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Login request
       .addCase(loginUser.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      // Login success
       .addCase(loginUser.fulfilled, (state, action: PayloadAction<LoginUserPayload>) => {
         state.loading = false;
         state.user = action.payload.user;
         state.error = null;
       })
-      // Login failure
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
@@ -113,8 +102,6 @@ const authSlice = createSlice({
   },
 });
 
-// Export actions
 export const { logout, clearError } = authSlice.actions;
 
-// Export reducer
 export default authSlice.reducer;

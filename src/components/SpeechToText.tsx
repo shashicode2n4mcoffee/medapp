@@ -4,8 +4,8 @@ import Voice, { SpeechResultsEvent, SpeechErrorEvent } from '@react-native-voice
 import { Colors } from '../theme/Colors';
 import logger from '../utils/logger';
 import TranscriptLoadingModal from './TranscriptLoadingModal';
+import useTranscriptionAPI from '../hooks/useTranscriptionAPI';
 
-// Import images
 const micIcon = require('../assets/start.png');
 const pauseIcon = require('../assets/pause.png');
 
@@ -45,28 +45,34 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
   const [hasPermission, setHasPermission] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const accumulatedTextRef = useRef('');
-  const isListeningRef = useRef(false); // Use ref to track listening state for callbacks
-  const isPausedRef = useRef(false);    // Add ref to track paused state for callbacks
+  const isListeningRef = useRef(false); 
+  const isPausedRef = useRef(false);   
   const [recordingTime, setRecordingTime] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  // Add new state for transcript loading modal
   const [showTranscriptModal, setShowTranscriptModal] = useState(false);
-  // Add new ref to store audio data
   const audioDataRef = useRef<any[]>([]);
 
+  const transcriptionAPI = useTranscriptionAPI({
+    recordId: 5826,
+    onTranscriptionComplete: (result) => {
+      logger.debug('Transcription completed', result);
+    },
+    onError: (error) => {
+      logger.error('Transcription error', error);
+      setError('Error during transcription: ' + (error.message || 'Unknown error'));
+    }
+  });
+
   useEffect(() => {
-    // Initialize Voice
     const initVoice = async () => {
       Voice.onSpeechStart = onSpeechStart;
       Voice.onSpeechResults = onSpeechResults;
       Voice.onSpeechPartialResults = onSpeechPartialResults;
       Voice.onSpeechError = onSpeechError;
-      // Add audio data listener if available
       if (Voice.onSpeechVolumeChanged) {
         Voice.onSpeechVolumeChanged = onSpeechVolumeChanged;
       }
       
-      // Request permissions on Android
       if (Platform.OS === 'android') {
         try {
           const granted = await PermissionsAndroid.request(
@@ -84,16 +90,13 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
           console.error(err);
         }
       } else {
-        // iOS permissions are requested when needed
         setHasPermission(true);
       }
     };
 
     initVoice();
 
-    // Cleanup Voice listeners on component unmount
     return () => {
-      // On component unmount, ensure text is submitted if there was any recording
       if (speechText && onSubmit) {
         onSubmit(speechText, audioDataRef.current);
       }
@@ -101,11 +104,17 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
+      
+      if (transcriptionAPI.isTranscribing) {
+        transcriptionAPI.stopTranscription().catch(err => {
+          logger.error('Error stopping transcription on unmount', err);
+        });
+      }
+      
       Voice.destroy().then(Voice.removeAllListeners);
     };
   }, []);
 
-  // Start timer when listening begins
   useEffect(() => {
     if (isListening && !isPaused) {
       timerRef.current = setInterval(() => {
@@ -123,10 +132,8 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
     };
   }, [isListening, isPaused]);
 
-  // Update isPaused state when it changes
   useEffect(() => {
     if (isPaused) {
-      // Make sure Voice is stopped when paused
       Voice.stop().catch(e => {
         logger.error('Error stopping voice recognition on pause state change', e);
       });
@@ -144,12 +151,10 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
   };
 
   const onSpeechVolumeChanged = (e: any) => {
-    // Don't collect audio data when paused
     if (isPausedRef.current) return;
-    
-    // Store audio data if available
     if (e && e.value) {
       audioDataRef.current.push(e.value);
+      transcriptionAPI.updateAudioData([e.value]);
     }
   };
 
@@ -157,9 +162,7 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
     logger.error('Speech error', e);
     
     if (isListeningRef.current && !isPausedRef.current) {
-      // Only try to restart if we're still in listening mode and NOT paused
       try {
-        // Small delay before restarting to avoid rapid restarts
         setTimeout(() => {
           if (isListeningRef.current && !isPausedRef.current) {
             Voice.start('en-US');
@@ -174,13 +177,11 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
   };
 
   const onSpeechPartialResults = (e: SpeechResultsEvent) => {
-    // Don't process results if paused
     if (isPausedRef.current) return;
     
     if (e.value && e.value[0]) {
       const partialResult = e.value[0];
       
-      // Only set the current partial result, don't accumulate yet
       const currentText = accumulatedTextRef.current 
         ? accumulatedTextRef.current + ' ' + partialResult
         : partialResult;
@@ -190,13 +191,11 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
   };
 
   const onSpeechResults = (e: SpeechResultsEvent) => {
-    // Don't process results if paused
     if (isPausedRef.current) return;
     
     if (e.value && e.value[0]) {
       const result = e.value[0];
       
-      // Append to previous results with a space if needed
       const updatedText = accumulatedTextRef.current
         ? accumulatedTextRef.current + ' ' + result
         : result;
@@ -208,7 +207,6 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
         onSpeechResult(updatedText);
       }
       
-      // Immediately restart listening if we're still in listening mode and NOT paused
       if (isListeningRef.current && !isPausedRef.current) {
         try {
           Voice.start('en-US');
@@ -227,27 +225,23 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
 
     setError(null);
     
-    // Make sure any previous sessions are stopped
     try {
       await Voice.stop();
     } catch (e) {
-      // Ignore errors when stopping
     }
     
     if (isPaused) {
-      // Resume from pause - don't reset anything
       setIsPaused(false);
       isPausedRef.current = false;
     } else if (!isListening) {
-      // Only reset accumulated text when starting a completely new recording
       accumulatedTextRef.current = '';
       setSpeechText('');
       setRecordingTime(0);
-      // Reset audio data when starting a new recording
       audioDataRef.current = [];
+      
+      transcriptionAPI.startTranscription();
     }
     
-    // Update both state and ref
     setIsListening(true);
     isListeningRef.current = true;
 
@@ -273,7 +267,6 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
   };
 
   const stopSpeechToText = async () => {
-    // Update both state and ref
     setIsListening(false);
     isListeningRef.current = false;
     setIsPaused(false);
@@ -290,7 +283,7 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
     if (!isListening) {
       startSpeechToText();
     } else if (isPaused) {
-      startSpeechToText(); // Resume recording
+      startSpeechToText(); 
     } else {
       pauseSpeechToText();
     }
@@ -304,21 +297,27 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
 
   const endRecording = () => {
     stopSpeechToText();
+    
+    transcriptionAPI.stopTranscription()
+      .then(() => {
+        logger.debug('Transcription ended successfully');
+      })
+      .catch((error) => {
+        logger.error('Error ending transcription', error);
+      });
+    
     if (onSubmit && speechText) {
       logger.debug('Submitting speech text:', speechText);
-      // Show transcript loading modal
       setShowTranscriptModal(true);
-      // Simulate waiting time - this would be replaced with actual API call in production
       setTimeout(() => {
         onSubmit(speechText, audioDataRef.current);
         setShowTranscriptModal(false);
-      }, 4000); // Showing modal for 4 seconds for demo purposes
+      }, 4000); 
     }
   };
 
   return (
     <View style={styles.container}>
-      {/* Patient Context Card */}
       <View style={styles.patientCard}>
         <Text style={styles.patientCardTitle}>Patient Context</Text>
         
@@ -370,7 +369,6 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
         )}
       </View>
       
-      {/* Live Transcription */}
       <View style={styles.transcriptionContainer}>
         <Text style={styles.transcriptionTitle}>Live transcription</Text>
         
@@ -391,17 +389,7 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
         </TouchableOpacity>
       </View>
       
-      {/* Action Buttons */}
       <View style={styles.actionButtonsContainer}>
-        {/* <TouchableOpacity
-          style={styles.generateNotesButton}
-          onPress={generateNotes}
-          activeOpacity={0.7}
-          disabled={!speechText}
-        >
-          <Text style={styles.generateNotesText}>Generate Notes</Text>
-        </TouchableOpacity>
-         */}
         <TouchableOpacity
           style={styles.endRecordingButton}
           onPress={endRecording}
@@ -411,7 +399,6 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
         </TouchableOpacity>
       </View>
       
-      {/* Use the TranscriptLoadingModal component instead of inline modal */}
       <TranscriptLoadingModal
         visible={showTranscriptModal}
         onRequestClose={() => setShowTranscriptModal(false)}

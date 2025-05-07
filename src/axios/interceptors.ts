@@ -6,19 +6,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import CookieManager from '@react-native-cookies/cookies';
 import { Platform } from 'react-native';
 import { STORAGE_KEYS } from '../utils/literals/appliterals';
+import { logout } from '../redux/slices/authSlice';
 
-// CSRF token-specific constants
+
 const CSRF_COOKIE_NAME = 'csrftoken';
 const API_DOMAIN = 'testapi.medvise.ai';
 const API_URL = `https://${API_DOMAIN}`;
 
-/**
- * Set a specific cookie for Android
- */
 const setCsrfCookie = async (csrfToken: string) => {
   try {
     if (Platform.OS === 'android') {
-      // For Android, we need to explicitly set the cookie
       await CookieManager.set(API_URL, {
         name: CSRF_COOKIE_NAME,
         value: csrfToken,
@@ -30,7 +27,6 @@ const setCsrfCookie = async (csrfToken: string) => {
       });
     }
     
-    // Store in AsyncStorage too for easier access
     await AsyncStorage.setItem(STORAGE_KEYS.CSRF_TOKEN, csrfToken);
     logger.debug('CSRF token set successfully', { csrfToken });
   } catch (error) {
@@ -38,36 +34,21 @@ const setCsrfCookie = async (csrfToken: string) => {
   }
 };
 
-/**
- * Get CSRF token from various sources
- */
 const getCsrfToken = async (): Promise<string | null> => {
   try {
-    // First try AsyncStorage as it's fastest
     let csrfToken = await AsyncStorage.getItem(STORAGE_KEYS.CSRF_TOKEN);
     if (csrfToken) {
       return csrfToken;
     }
     
-    // Then try to get from cookies
     const cookieURL = Platform.OS === 'ios' ? API_URL : API_DOMAIN;
     const cookies = await CookieManager.get(cookieURL);
     
     if (cookies && cookies[CSRF_COOKIE_NAME]) {
       csrfToken = cookies[CSRF_COOKIE_NAME].value;
       
-      // Save for future use
       await AsyncStorage.setItem(STORAGE_KEYS.CSRF_TOKEN, csrfToken);
       return csrfToken;
-    }
-    
-    // If we're on Android and have no token, we might need to set a default one
-    // that will be overridden on the first API response
-    if (Platform.OS === 'android') {
-      // The default value matches what was in your curl example
-      const defaultCsrfToken = '63Ne2zygwMCdkxp6OgLkaR5ZKTNMLN7L';
-      await setCsrfCookie(defaultCsrfToken);
-      return defaultCsrfToken;
     }
     
     return null;
@@ -77,12 +58,8 @@ const getCsrfToken = async (): Promise<string | null> => {
   }
 };
 
-/**
- * Extract CSRF token from response headers
- */
 const extractCsrfTokenFromResponse = async (response: AxiosResponse) => {
   try {
-    // Different ways the token might come in headers
     const setCookieHeader = response.headers['set-cookie'];
     
     if (setCookieHeader) {
@@ -100,7 +77,6 @@ const extractCsrfTokenFromResponse = async (response: AxiosResponse) => {
       }
     }
     
-    // Also check if token is in the response body (some APIs do this)
     if (response.data && response.data.csrftoken) {
       await setCsrfCookie(response.data.csrftoken);
     }
@@ -109,11 +85,6 @@ const extractCsrfTokenFromResponse = async (response: AxiosResponse) => {
   }
 };
 
-/**
- * Request interceptor
- * - Adds authentication token to requests
- * - Can handle request logging or modifications
- */
 const setupRequestInterceptor = () => {
   axiosInstance.interceptors.request.use(
     async (config: InternalAxiosRequestConfig) => {
@@ -148,11 +119,12 @@ const setupRequestInterceptor = () => {
         
         if (csrfToken) {
           // Add CSRF token to headers
-          // config.headers.set('x-csrftoken', csrfToken);
+          console.log('CSRF token found:', csrfToken);
+          config.headers.set('x-csrftoken', csrfToken);
           
           // For Android, we also need to add it as a cookie header
           if (Platform.OS === 'android') {
-            // config.headers.set('Cookie', `${CSRF_COOKIE_NAME}=${csrfToken}`);
+            config.headers.set('Cookie', `${CSRF_COOKIE_NAME}=${csrfToken}`);
           }
           
           // Enable credentials
@@ -172,12 +144,6 @@ const setupRequestInterceptor = () => {
   );
 };
 
-/**
- * Response interceptor
- * - Handles global response processing
- * - Manages authentication errors (401, 403)
- * - Centralizes error handling
- */
 const setupResponseInterceptor = () => {
   axiosInstance.interceptors.response.use(
     (response: AxiosResponse) => {
@@ -227,15 +193,8 @@ const setupResponseInterceptor = () => {
 
       // Handle authentication errors
       if (response?.status === 401 || response?.status === 403) {
-        // Get dispatch from store to logout user
         const { dispatch } = store;
-        // Import logout action
-        const { logout } = require('../redux/slices/authSlice');
-        
-        // Logout user on auth errors
         dispatch(logout());
-        
-        // You could also redirect to login screen here if needed
       }
       
       return Promise.reject(error);
@@ -243,9 +202,6 @@ const setupResponseInterceptor = () => {
   );
 };
 
-/**
- * Setup all interceptors
- */
 export const setupInterceptors = () => {
   setupRequestInterceptor();
   setupResponseInterceptor();

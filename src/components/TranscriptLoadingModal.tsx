@@ -2,7 +2,6 @@ import React from 'react';
 import { View, Text, StyleSheet, Modal, Image, ActivityIndicator } from 'react-native';
 import { Colors } from '../theme/Colors';
 
-// Import the transcript loading icon
 const transcriptLoadingIcon = require('../assets/transcript-loading.png');
 
 interface TranscriptLoadingModalProps {
@@ -65,12 +64,12 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: 'rgba(144, 238, 144, 0.3)', // Light green background
+    backgroundColor: 'rgba(144, 238, 144, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
     borderWidth: 2,
-    borderColor: '#3CB371', // Medium sea green border
+    borderColor: '#3CB371', 
   },
   robotImage: {
     width: 70,

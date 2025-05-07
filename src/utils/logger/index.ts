@@ -1,8 +1,3 @@
-/**
- * Logger utility to handle application logging in a consistent way
- * Provides standardized logging with different levels and grouping capabilities
- */
-
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 interface LogOptions {
@@ -17,18 +12,14 @@ class Logger {
     this.isProduction = !__DEV__;
   }
 
-  /**
-   * Log messages with different levels and optional grouping
-   */
   log(level: LogLevel, message: string, data?: any, options?: LogOptions) {
     if (this.isProduction && level === 'debug') {
-      return; // Skip debug logs in production
+      return;
     }
 
     const timestamp = new Date().toISOString();
     const prefix = `[${timestamp}] [${level.toUpperCase()}]`;
 
-    // Start a group if specified
     if (options?.group) {
       if (options?.collapsed) {
         console.groupCollapsed(`${prefix} ${options.group}`);
@@ -37,7 +28,6 @@ class Logger {
       }
     }
 
-    // Log the message with appropriate level
     switch (level) {
       case 'debug':
         console.debug(`${prefix} ${message}`, data !== undefined ? data : '');
@@ -53,15 +43,11 @@ class Logger {
         break;
     }
 
-    // End group if we started one
     if (options?.group) {
       console.groupEnd();
     }
   }
 
-  /**
-   * Helper methods for common log levels
-   */
   debug(message: string, data?: any, options?: LogOptions) {
     this.log('debug', message, data, options);
   }
@@ -78,12 +64,9 @@ class Logger {
     this.log('error', message, data, options);
   }
 
-  /**
-   * Group multiple log messages together
-   */
   group(title: string, collapsed: boolean = false, callback: () => void) {
     if (this.isProduction) {
-      callback(); // Still execute but without grouping in production
+      callback(); 
       return;
     }
 
@@ -97,9 +80,6 @@ class Logger {
     console.groupEnd();
   }
 
-  /**
-   * Log HTTP requests and responses
-   */
   httpRequest(method: string, url: string, config?: any) {
     this.info(`🚀 REQUEST: ${method.toUpperCase()} ${url}`, config);
   }
@@ -113,6 +93,5 @@ class Logger {
   }
 }
 
-// Export a singleton instance
 export const logger = new Logger();
 export default logger;

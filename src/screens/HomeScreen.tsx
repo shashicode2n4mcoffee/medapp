@@ -14,13 +14,10 @@ type HomeScreenProps = {
 };
 
 const HomeScreen = ({ navigation }: HomeScreenProps) => {
-  // Always use light mode for this screen
   const isDarkMode = false;
   
-  // Use the sidebar context
   const { isSidebarOpen } = useSidebar();
   
-  // Form state
   const [visitType, setVisitType] = useState('ECW-registered patient');
   const [patientName, setPatientName] = useState('John Doe');
   const [patientAge, setPatientAge] = useState('43');
@@ -29,7 +26,6 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
   const [showVisitTypeDropdown, setShowVisitTypeDropdown] = useState(false);
   const [showGenderDropdown, setShowGenderDropdown] = useState(false);
 
-  // Dropdown options
   const visitTypeOptions = [
     'ECW-registered patient',
     'New patient',
@@ -45,7 +41,6 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
   ];
 
   const handleStartRecording = () => {
-    // Navigate to transcribe screen with patient info
     navigation.navigate('Transcribe', {
       patientInfo: {
         name: patientName,
@@ -57,16 +52,13 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
   };
   
   const handleUploadAudio = () => {
-    // Handle audio upload functionality
     console.log('Upload audio functionality to be implemented');
   };
 
   const handleHelpSupport = () => {
-    // Handle help/support functionality
     console.log('Help/support functionality to be implemented');
   };
 
-  // Handle dropdown option selection
   const selectVisitType = (option: string) => {
     setVisitType(option);
     setShowVisitTypeDropdown(false);
@@ -81,11 +73,10 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
     <SafeAreaView 
       style={[
         styles.container, 
-        { backgroundColor: '#F2FFF6' } // Light green background from the image
+        { backgroundColor: '#F2FFF6' }
       ]}
       edges={['bottom', 'left', 'right']}
     >
-      {/* Sidebar Component */}
       <Sidebar 
         isVisible={isSidebarOpen}
         onClose={() => {}}
@@ -107,7 +98,6 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
         <View style={styles.formContainer}>
           <Text style={styles.formTitle}>Patient Context</Text>
           
-          {/* Type of Visit Dropdown */}
           <View style={styles.formGroup}>
             <Text style={styles.label}>Type of Visit</Text>
             <TouchableOpacity 
@@ -118,7 +108,6 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
               <Text style={styles.dropdownIcon}>▼</Text>
             </TouchableOpacity>
             
-            {/* Visit Type Dropdown Modal */}
             <Modal
               visible={showVisitTypeDropdown}
               transparent={true}
@@ -159,7 +148,6 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
             </Modal>
           </View>
           
-          {/* Patient Name */}
           <InputField
             label="Name"
             value={patientName}
@@ -168,7 +156,6 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
             inputContainerStyle={styles.inputField}
           />
           
-          {/* Age and Gender in one row */}
           <View style={styles.rowContainer}>
             <View style={styles.halfContainer}>
               <InputField
@@ -191,7 +178,6 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
                 <Text style={styles.dropdownIcon}>▼</Text>
               </TouchableOpacity>
               
-              {/* Gender Dropdown Modal */}
               <Modal
                 visible={showGenderDropdown}
                 transparent={true}
@@ -233,7 +219,6 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
             </View>
           </View>
           
-          {/* Medical Record Number */}
           <InputField
             label="Medical Record Number (MRN)"
             value={medicalRecordNumber}
@@ -242,7 +227,6 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
             inputContainerStyle={styles.inputField}
           />
           
-          {/* Buttons */}
           <Button
             title="Start recording"
             onPress={handleStartRecording}
@@ -258,7 +242,6 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
           />
         </View>
         
-        {/* Help/Support Button */}
         <TouchableOpacity 
           style={styles.helpButton}
           onPress={handleHelpSupport}

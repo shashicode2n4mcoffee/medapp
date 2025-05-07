@@ -38,24 +38,24 @@ const Sidebar = ({ isVisible, userInfo }: SidebarProps) => {
       icon: require('../assets/appointment.png'),
       screen: 'Appointments' 
     },
-    { 
-      id: 'patients', 
-      title: 'Patients', 
-      icon: require('../assets/patient.png'),
-      screen: 'Home' 
-    },
-    { 
-      id: 'settings', 
-      title: 'Settings', 
-      icon: require('../assets/setting.png'),
-      screen: 'Home' 
-    },
-    { 
-      id: 'help', 
-      title: 'Help & Support', 
-      icon: require('../assets/help.png'),
-      screen: 'Home' 
-    },
+    // { 
+    //   id: 'patients', 
+    //   title: 'Patients', 
+    //   icon: require('../assets/patient.png'),
+    //   screen: 'Home' 
+    // },
+    // { 
+    //   id: 'settings', 
+    //   title: 'Settings', 
+    //   icon: require('../assets/setting.png'),
+    //   screen: 'Home' 
+    // },
+    // { 
+    //   id: 'help', 
+    //   title: 'Help & Support', 
+    //   icon: require('../assets/help.png'),
+    //   screen: 'Home' 
+    // },
     { 
       id: 'logout', 
       title: 'Log Out', 
@@ -65,16 +65,14 @@ const Sidebar = ({ isVisible, userInfo }: SidebarProps) => {
   ];
 
   const handleNavigation = (screenName: keyof RootStackParamList) => {
-    // Close sidebar first and then navigate
     closeSidebar();
-    navigation.navigate(screenName);
+    navigation.navigate(screenName as never);
   };
 
   return (
     <View style={styles.overlay}>
       <View style={styles.container}>
         <ScrollView>
-          {/* User Profile Section */}
           <View style={styles.profileSection}>
             <Image 
               source={userInfo?.avatar || require('../assets/logo.png')} 
@@ -84,7 +82,6 @@ const Sidebar = ({ isVisible, userInfo }: SidebarProps) => {
             <Text style={styles.userRole}>{userInfo?.role || 'Doctor'}</Text>
           </View>
           
-          {/* Menu Items */}
           <View style={styles.menuContainer}>
             {menuItems.map((item) => (
               <TouchableOpacity
@@ -114,7 +111,6 @@ const Sidebar = ({ isVisible, userInfo }: SidebarProps) => {
             ))}
           </View>
           
-          {/* In Progress Section */}
           <View style={styles.inProgressSection}>
             <Text style={styles.sectionTitle}>IN PROGRESS</Text>
             <View style={styles.appointmentCard}>
@@ -130,7 +126,6 @@ const Sidebar = ({ isVisible, userInfo }: SidebarProps) => {
         </ScrollView>
       </View>
       
-      {/* Empty area that can be tapped to close sidebar */}
       <TouchableOpacity style={styles.closeArea} onPress={closeSidebar} />
     </View>
   );

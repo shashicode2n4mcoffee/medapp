@@ -25,7 +25,6 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Log both error details in a grouped log
     logger.group('App Error', false, () => {
       logger.error('Error', error);
       logger.error('Error Info', errorInfo);

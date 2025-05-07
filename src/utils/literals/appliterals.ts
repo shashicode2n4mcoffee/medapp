@@ -1,32 +1,21 @@
-/**
- * Application Literals
- * 
- * This file contains all the application-wide literals and constants
- * used throughout the application. Centralizing these values helps with
- * maintenance and consistency.
- */
 
-// App identification
 export const APP = {
   NAME: 'AIApp',
   VERSION: '0.0.1',
   BUNDLE_ID: 'com.aiapp',
 };
 
-// Platform-specific identifiers
 export const PLATFORMS = {
   ANDROID: 'android',
   IOS: 'ios',
 };
 
-// Environment names
 export const ENVIRONMENTS = {
   DEVELOPMENT: 'development',
   STAGING: 'staging',
   PRODUCTION: 'production',
 };
 
-// UI-related constants
 export const UI = {
   HEADER_HEIGHT: 56,
   FOOTER_HEIGHT: 56,
@@ -42,14 +31,12 @@ export const UI = {
   INPUT_HEIGHT: 48,
 };
 
-// Navigation route names
 export const ROUTES = {
   LOGIN: 'Login',
   HOME: 'Home',
   FORGOT_PASSWORD: 'ForgotPassword',
 };
 
-// Storage keys
 export const STORAGE_KEYS = {
   AUTH_TOKEN: 'auth_token',
   USER_INFO: 'user_info',
@@ -57,14 +44,12 @@ export const STORAGE_KEYS = {
   CSRF_TOKEN: 'csrf_token',
 };
 
-// Timeouts and intervals (in milliseconds)
 export const TIMEOUTS = {
-  API_REQUEST: 30000,  // 30 seconds
-  TOKEN_REFRESH: 300000,  // 5 minutes
-  AUTO_LOGOUT: 1800000,  // 30 minutes
+  API_REQUEST: 30000, 
+  TOKEN_REFRESH: 300000, 
+  AUTO_LOGOUT: 1800000,  
 };
 
-// Export all literal categories
 export default {
   APP,
   PLATFORMS,

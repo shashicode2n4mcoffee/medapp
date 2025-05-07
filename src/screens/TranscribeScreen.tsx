@@ -15,12 +15,10 @@ type TranscribeScreenProps = {
 };
 
 const TranscribeScreen = ({ navigation, route }: TranscribeScreenProps) => {
-  // Always use light mode for this screen
   const isDarkMode = false;
   const [recognizedText, setRecognizedText] = useState<string>('');
   const [audioData, setAudioData] = useState<any[]>([]);
   
-  // Get patient info from route params or use default values
   const patientInfo = route.params?.patientInfo || {
     name: 'George Smith',
     age: '43',
@@ -29,7 +27,6 @@ const TranscribeScreen = ({ navigation, route }: TranscribeScreenProps) => {
     uid: '430897134'
   };
   
-  // Use the sidebar context
   const { isSidebarOpen } = useSidebar();
   
   const handleSpeechResult = (text: string) => {
@@ -52,7 +49,6 @@ const TranscribeScreen = ({ navigation, route }: TranscribeScreenProps) => {
       ]}
       edges={['bottom', 'left', 'right']}
     >
-      {/* Sidebar Component with global context state */}
       <Sidebar 
         isVisible={isSidebarOpen}
         onClose={() => {}}
@@ -84,7 +80,7 @@ const TranscribeScreen = ({ navigation, route }: TranscribeScreenProps) => {
                   age: patientInfo.age,
                   gender: patientInfo.gender,
                   mrn: patientInfo.mrn,
-                  uid: patientInfo.mrn // Using mrn as uid since it wasn't provided from HomeScreen
+                  uid: patientInfo.mrn
                 }}
               />
             </View>
