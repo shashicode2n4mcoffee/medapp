@@ -14,7 +14,6 @@ type LoginScreenProps = {
 };
 
 const LoginScreen = ({ navigation }: LoginScreenProps) => {
-  // Always use light mode for this screen
   const isDarkMode = false;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -49,16 +48,13 @@ const LoginScreen = ({ navigation }: LoginScreenProps) => {
     if (!emailValidationError && !passwordValidationError) {
       setLoading(true);
       
-      // Dispatch login action with actual form values
       dispatch(loginUser({ email, password }))
         .unwrap()
         .then(() => {
           setLoading(false);
-          // Navigate to HomeScreen after successful login
-          navigation.replace('Home');
+          navigation.replace('Appointments');
         })
         .catch(() => {
-          // Error is already handled in the slice
           setLoading(false);
         });
     }
@@ -91,12 +87,13 @@ const LoginScreen = ({ navigation }: LoginScreenProps) => {
           <View style={styles.formContainer}>
             {/* Logo */}
             <View style={styles.logoContainer}>
-              <View style={styles.logoWrapper}>
-                <Text style={styles.logoText}>MEDVISE</Text>
-              </View>
+              <Image 
+                source={require('../assets/logo.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
             </View>
 
-            {/* Welcome Text */}
             <Text style={[
               styles.title,
               { color: isDarkMode ? Colors.textLight : Colors.textPrimary }
@@ -181,7 +178,7 @@ const LoginScreen = ({ navigation }: LoginScreenProps) => {
               style={styles.loginButton}
             />
 
-            <View style={styles.signupContainer}>
+            {/* <View style={styles.signupContainer}>
               <Text style={[
                 styles.signupText,
                 { color: isDarkMode ? Colors.gray : Colors.textSecondary }
@@ -196,7 +193,7 @@ const LoginScreen = ({ navigation }: LoginScreenProps) => {
                   {' Sign Up'}
                 </Text>
               </TouchableOpacity>
-            </View>
+            </View> */}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -223,20 +220,12 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 96,
+    marginTop: 20,
   },
-  logoWrapper: {
-    width: 80,
+  logo: {
+    width: 200,
     height: 80,
-    borderRadius: 12,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   title: {
     fontSize: 28,

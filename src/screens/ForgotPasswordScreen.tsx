@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../theme/Colors';
@@ -12,7 +12,6 @@ type ForgotPasswordScreenProps = {
 };
 
 const ForgotPasswordScreen = ({ navigation }: ForgotPasswordScreenProps) => {
-  // Always use light mode for this screen
   const isDarkMode = false;
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
@@ -32,7 +31,6 @@ const ForgotPasswordScreen = ({ navigation }: ForgotPasswordScreenProps) => {
 
     if (!emailValidationError) {
       setLoading(true);
-      // Simulate API call to send password reset link
       setTimeout(() => {
         setLoading(false);
         setResetSent(true);
@@ -63,9 +61,11 @@ const ForgotPasswordScreen = ({ navigation }: ForgotPasswordScreenProps) => {
           <View style={styles.formContainer}>
             {/* Logo */}
             <View style={styles.logoContainer}>
-              <View style={styles.logoWrapper}>
-                <Text style={styles.logoText}>MEDVISE</Text>
-              </View>
+              <Image 
+                source={require('../assets/logo.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
             </View>
             
             <Text style={[
@@ -155,7 +155,8 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 96,
+    marginTop: 20,
   },
   logoWrapper: {
     width: 80,
@@ -169,6 +170,10 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  logo: {
+    width: 200,
+    height: 80,
   },
   backButton: {
     marginTop: 16,
