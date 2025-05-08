@@ -1,10 +1,8 @@
 import { Platform } from 'react-native';
 import Config from 'react-native-config';
 
-// Define available environments
 type Environment = 'development' | 'staging' | 'production';
 
-// Log environment variables for debugging
 const logEnvVars = () => {
   console.log('Environment Variables:');
   console.log('ENVIRONMENT:', Config.ENVIRONMENT);
@@ -13,12 +11,10 @@ const logEnvVars = () => {
   console.log('API_BASE_URL_PRODUCTION:', Config.API_BASE_URL_PRODUCTION);
 };
 
-// Call this in development to see what's being loaded
 if (__DEV__) {
   logEnvVars();
 }
 
-// Get current environment from .env file or default to development
 const getEnvironment = (): Environment => {
   const environment = Config.ENVIRONMENT || 'development';
   
@@ -29,10 +25,8 @@ const getEnvironment = (): Environment => {
   return 'development';
 };
 
-// Get current environment
 const currentEnv = getEnvironment();
 
-// Get API URL based on current environment
 const getApiBaseUrl = (): string => {
   switch (currentEnv) {
     case 'development':
@@ -46,7 +40,6 @@ const getApiBaseUrl = (): string => {
   }
 };
 
-// Export the configuration for the current environment
 export default {
   ENV: currentEnv,
   API_BASE_URL: getApiBaseUrl(),
