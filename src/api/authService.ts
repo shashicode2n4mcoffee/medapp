@@ -51,7 +51,16 @@ class AuthService {
    * @returns Promise with login response containing user data
    */
   async login(email: string, password: string): Promise<ApiResponse<LoginResponse>> {
-    const response = await apiClient.post<any>(AUTH.LOGIN, { email, password });
+    // Create a specific configuration for login request to match Postman format
+    const config = {
+      headers: {
+        'accept': 'application/json, text/plain, */*',
+        'content-type': 'application/json'
+      },
+      withCredentials: true
+    };
+    
+    const response = await apiClient.post<any>(AUTH.LOGIN, { email, password }, config);
     
     if (response.success && response.data) {
       // The API response data already contains the user information

@@ -91,28 +91,11 @@ const setupRequestInterceptor = () => {
       // Get the current state
       const state = store.getState();
       
-      // Add required headers to match the curl request
-      // config.headers.set('accept', 'application/json, text/plain, */*');
-      // config.headers.set('accept-language', 'en-US,en;q=0.9');
+      // Add required headers to match the Postman request
+      config.headers.set('accept', 'application/json, text/plain, */*');
       config.headers.set('content-type', 'application/json');
-      config.headers.set('origin', 'https://www.testportal.medvise.ai');
-      // config.headers.set('priority', 'u=1, i');
-      // config.headers.set('referer', 'https://www.testportal.medvise.ai/');
-      
-      // Only add browser-specific headers if not on native
-      // if (Platform.OS === 'web' || !Platform.OS) {
-      //   config.headers.set('sec-ch-ua', '"Chromium";v="136", "Brave";v="136", "Not.A/Brand";v="99"');
-      //   config.headers.set('sec-ch-ua-mobile', '?0');
-      //   config.headers.set('sec-ch-ua-platform', '"Windows"');
-      //   config.headers.set('sec-fetch-dest', 'empty');
-      //   config.headers.set('sec-fetch-mode', 'cors');
-      //   config.headers.set('sec-fetch-site', 'same-site');
-      //   config.headers.set('sec-gpc', '1');
-      // }
-      
-      // Always include a user-agent
-      // config.headers.set('user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36');
-      
+      config.headers.set('referer', 'https://www.testportal.medvise.ai/');
+
       try {
         // Get CSRF token
         const csrfToken = await getCsrfToken();
@@ -120,11 +103,11 @@ const setupRequestInterceptor = () => {
         if (csrfToken) {
           // Add CSRF token to headers
           console.log('CSRF token found:', csrfToken);
-          config.headers.set('x-csrftoken', csrfToken);
+          // config.headers.set('x-csrftoken', csrfToken);
           
           // For Android, we also need to add it as a cookie header
           if (Platform.OS === 'android') {
-            config.headers.set('Cookie', `${CSRF_COOKIE_NAME}=${csrfToken}`);
+            // config.headers.set('Cookie', `${CSRF_COOKIE_NAME}=${csrfToken}`);
           }
           
           // Enable credentials
@@ -147,7 +130,29 @@ const setupRequestInterceptor = () => {
 const setupResponseInterceptor = () => {
   axiosInstance.interceptors.response.use(
     (response: AxiosResponse) => {
-      logger.httpResponse(response.config.method || 'unknown', response.config.url || 'unknown', response);
+      // Log the response details
+      logger.group(`📥 API Response: ${response.config.method?.toUpperCase() || 'UNKNOWN'} ${response.config.url || 'unknown'}`, false, () => {
+        logger.info(`Status: ${response.status} ${response.statusText}`);
+        logger.info(`Time: ${new Date().toISOString()}`);
+        
+        // Log headers but filter out sensitive information
+        const filteredHeaders = { ...response.headers };
+        if (filteredHeaders.authorization) {
+          filteredHeaders.authorization = '[FILTERED]';
+        }
+        logger.debug('Headers:', filteredHeaders);
+        
+        // Log response data
+        logger.debug('Response data:', response.data);
+        
+        // Log request details for context
+        logger.debug('Request details:', {
+          url: response.config.url,
+          method: response.config.method?.toUpperCase(),
+          params: response.config.params,
+          data: response.config.data
+        });
+      });
       
       // Extract and store CSRF token if present
       extractCsrfTokenFromResponse(response);

@@ -6,11 +6,12 @@ const baseURL = env.API_BASE_URL;
 
 const axiosInstance = axios.create({
   baseURL,
-  timeout: 30000, 
+  timeout: 300000, 
   headers: {
     'Content-Type': 'application/json',
-    Accept: 'application/json',
+    'Accept': 'application/json, text/plain, */*',
   },
+  withCredentials: true
 });
 
 axiosInstance.interceptors.request.use(

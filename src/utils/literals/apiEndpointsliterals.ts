@@ -1,5 +1,5 @@
 export const AUTH = {
-  LOGIN: '/api/V2/account/auth/login',
+  LOGIN: '/api/V2/account/auth/login/',
   REGISTER: '/auth/register',
   FORGOT_PASSWORD: '/auth/forgot-password',
   RESET_PASSWORD: '/auth/reset-password',
