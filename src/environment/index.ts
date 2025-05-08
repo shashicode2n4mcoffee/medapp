@@ -4,6 +4,20 @@ import Config from 'react-native-config';
 // Define available environments
 type Environment = 'development' | 'staging' | 'production';
 
+// Log environment variables for debugging
+const logEnvVars = () => {
+  console.log('Environment Variables:');
+  console.log('ENVIRONMENT:', Config.ENVIRONMENT);
+  console.log('API_BASE_URL_DEVELOPMENT:', Config.API_BASE_URL_DEVELOPMENT);
+  console.log('API_BASE_URL_STAGING:', Config.API_BASE_URL_STAGING);
+  console.log('API_BASE_URL_PRODUCTION:', Config.API_BASE_URL_PRODUCTION);
+};
+
+// Call this in development to see what's being loaded
+if (__DEV__) {
+  logEnvVars();
+}
+
 // Get current environment from .env file or default to development
 const getEnvironment = (): Environment => {
   const environment = Config.ENVIRONMENT || 'development';
@@ -22,13 +36,13 @@ const currentEnv = getEnvironment();
 const getApiBaseUrl = (): string => {
   switch (currentEnv) {
     case 'development':
-      return Config.API_BASE_URL_DEVELOPMENT || 'https://testapi.medvise.ai';
+      return Config.API_BASE_URL_DEVELOPMENT || '';
     case 'staging':
-      return Config.API_BASE_URL_STAGING || 'https://staging-api.example.com';
+      return Config.API_BASE_URL_STAGING || '';
     case 'production':
-      return Config.API_BASE_URL_PRODUCTION || 'https://api.example.com';
+      return Config.API_BASE_URL_PRODUCTION || '';
     default:
-      return Config.API_BASE_URL_DEVELOPMENT || 'https://dev-api.example.com';
+      return Config.API_BASE_URL_DEVELOPMENT || '';
   }
 };
 
