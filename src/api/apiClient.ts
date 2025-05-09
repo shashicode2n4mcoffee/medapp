@@ -154,7 +154,6 @@ class ApiClient {
       statusCode: 500,
     };
 
-    // Determine error type and set appropriate error details
     if (error.response) {
       // Server responded with an error status code
       const { status, data, statusText } = error.response;
