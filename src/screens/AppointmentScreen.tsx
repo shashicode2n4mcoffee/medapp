@@ -458,12 +458,11 @@ const styles = StyleSheet.create({
     height: 20,
   },
   tabContainer: {
-    flexDirection: 'row',
     marginBottom: 20,
     display: 'flex',
     justifyContent: 'space-between', 
     alignItems: 'center',
-    paddingHorizontal: 10,
+    flexDirection: 'row',
   },
   tabButton: {
     paddingVertical: 12,
