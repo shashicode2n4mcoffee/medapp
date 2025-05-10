@@ -13,13 +13,21 @@ import { setupInterceptors } from './src/axios';
 import { APP } from './src/utils/literals/appliterals';
 import { SidebarProvider } from './src/context/SidebarContext';
 import { OnboardingProvider } from './src/context/OnboardingContext';
+import { restoreSessionCookies } from './src/utils/authStorage';
 
 function App(): React.JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
-
-  // Initialize axios interceptors
+  // Initialize axios interceptors and restore session cookies
   useEffect(() => {
-    setupInterceptors();
+    const initializeApp = async () => {
+      // Set up axios interceptors
+      setupInterceptors();
+      
+      // Restore session cookies from AsyncStorage if they exist
+      await restoreSessionCookies();
+    };
+    
+    initializeApp();
   }, []);
 
   return (

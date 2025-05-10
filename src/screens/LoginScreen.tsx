@@ -1,13 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, useColorScheme, KeyboardAvoidingView, Platform, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import CookieManager from '@react-native-cookies/cookies';
 import { Colors } from '../theme/Colors';
 import InputField from '../components/InputField';
 import Button from '../components/Button';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { loginUser } from '../redux/slices/authSlice';
 import { useAppDispatch, useAppSelector } from '../redux/store';
+import { STORAGE_KEYS } from '../utils/literals/appliterals';
+import { restoreSessionCookies, hasStoredCredentials, getStoredUserData } from '../utils/authStorage';
 
 type LoginScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Login'>;
@@ -24,6 +28,44 @@ const LoginScreen = ({ navigation }: LoginScreenProps) => {
   const { error, user } = useAppSelector(state => state.auth);
 
   const dispatch = useAppDispatch();
+    // Check for stored credentials on component mount
+  useEffect(() => {
+    const checkSavedCredentials = async () => {
+      try {
+        // Check if "Remember Me" was enabled and we have stored credentials
+        const hasCredentials = await hasStoredCredentials();
+        
+        if (hasCredentials) {
+          // Set remember me state
+          setRememberMe(true);
+          
+          // Restore session cookies
+          await restoreSessionCookies();
+          
+          // Get saved user data
+          const userData = await getStoredUserData();
+          
+          if (userData) {
+            // Pre-fill the email field if available
+            if (userData.email) {
+              setEmail(userData.email);
+            }
+            
+            // Check if user is already authenticated via Redux state
+            if (!user) {
+              console.log('Found saved login credentials');
+              // Note: For enhanced security, we don't pre-fill the password field
+              // But you could implement auto-login here if desired
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error retrieving saved credentials:', error);
+      }
+    };
+    
+    checkSavedCredentials();
+  }, [user]);
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -36,6 +78,35 @@ const LoginScreen = ({ navigation }: LoginScreenProps) => {
     if (!password) return 'Password is required';
     if (password.length < 6) return 'Password must be at least 6 characters';
     return '';
+  };  // Function to save authentication data to AsyncStorage
+  const saveAuthDataToStorage = async (userData: any) => {
+    try {
+      // Save user data
+      await AsyncStorage.setItem(STORAGE_KEYS.USER_INFO, JSON.stringify(userData));
+      
+      // Save remember me preference
+      await AsyncStorage.setItem(STORAGE_KEYS.REMEMBER_ME, JSON.stringify(rememberMe));
+      
+      // Get and save session ID and CSRF token from cookies
+      const cookieURL = Platform.OS === 'ios' ? 'https://testapi.medvise.ai' : 'testapi.medvise.ai';
+      const cookies = await CookieManager.get(cookieURL);
+      
+      if (cookies) {
+        // Save session ID if present
+        if (cookies.sessionid) {
+          await AsyncStorage.setItem(STORAGE_KEYS.SESSION_ID, cookies.sessionid.value);
+        }
+        
+        // Save CSRF token if present (it may already be saved by the interceptor, but adding it here for completeness)
+        if (cookies.csrftoken) {
+          await AsyncStorage.setItem(STORAGE_KEYS.CSRF_TOKEN, cookies.csrftoken.value);
+        }
+      }
+      
+      console.log('Authentication data saved successfully');
+    } catch (error) {
+      console.error('Error saving authentication data:', error);
+    }
   };
 
   const handleLogin = () => {
@@ -50,8 +121,21 @@ const LoginScreen = ({ navigation }: LoginScreenProps) => {
       
       dispatch(loginUser({ email, password }))
         .unwrap()
-        .then(() => {
+        .then((result) => {
           setLoading(false);
+          
+          // If remember me is checked, save auth data
+          if (rememberMe) {
+            saveAuthDataToStorage(result.user);
+          } else {
+            // If not checked, clear any previously stored data
+            AsyncStorage.multiRemove([
+              STORAGE_KEYS.USER_INFO,
+              STORAGE_KEYS.REMEMBER_ME,
+              STORAGE_KEYS.SESSION_ID
+            ]);
+          }
+          
           navigation.replace('Appointments');
         })
         .catch(() => {

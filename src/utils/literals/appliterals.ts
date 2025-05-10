@@ -42,6 +42,8 @@ export const STORAGE_KEYS = {
   USER_INFO: 'user_info',
   SETTINGS: 'app_settings',
   CSRF_TOKEN: 'csrf_token',
+  SESSION_ID: 'session_id',
+  REMEMBER_ME: 'remember_me',
 };
 
 export const TIMEOUTS = {
