@@ -8,9 +8,9 @@ import {
   TextInput,
   Image,
   ActivityIndicator,
+  SafeAreaView,
 } from 'react-native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {SafeAreaView} from 'react-native-safe-area-context';
 import {Colors} from '../theme/Colors';
 import {RootStackParamList} from '../navigation/AppNavigator';
 import Sidebar from '../components/Sidebar';
@@ -19,6 +19,8 @@ import {useAppDispatch, useAppSelector} from '../redux/store';
 import {fetchAppointments, updateParams} from '../redux/slices/appointmentsSlice';
 import {Appointment as AppointmentType} from '../api/appointmentService';
 import {format, parseISO} from 'date-fns';
+// Import mock data
+import mockAppointments from '../mock/mockAppointments';
 
 type AppointmentScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Appointments'>;
@@ -32,21 +34,23 @@ interface AppointmentDisplay {
   time: string;
   type: 'ECW' | 'Adhoc';
   status: string;
+  age?: string;
+  gender?: string;
 }
 
 const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
-  const {isSidebarOpen} = useSidebar();
+  const {isSidebarOpen, toggleSidebar} = useSidebar();
   const dispatch = useAppDispatch();
   
   const [searchQuery, setSearchQuery] = useState('');
-  const [dateFilter, setDateFilter] = useState('');
+  const [selectedTab, setSelectedTab] = useState(0); // 0: Today, 1: Last 7 days, 2: Last 14 days
+  const [selectedCategory, setSelectedCategory] = useState('upcoming'); // 'upcoming', 'progress', 'complete'
+  const [loading, setLoading] = useState(false);
+  const [localAppointments, setLocalAppointments] = useState<AppointmentDisplay[]>([]);
 
-  // Get appointments state from Redux
-  const {appointments = [], loading = false, error = null, total: totalAppointments = 0, currentParams} = 
+  // Get appointments from Redux (optional, we'll use mock data)
+  const {appointments = [], error = null, total: totalAppointments = 0} = 
     useAppSelector(state => state.appointments || {});
-
-  // Default page size if currentParams is undefined
-  const pageSize = currentParams?.limit || 30;
 
   // Map API appointments to display format
   const mapAppointmentsForDisplay = (apiAppointments: AppointmentType[]): AppointmentDisplay[] => {
@@ -70,151 +74,293 @@ const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
       return {
         id: appointment.id.toString(),
         patientName: appointment.appointment_name || 'No Name',
-        date: format(appointmentDate, 'dd/MM/yyyy'),
-        time: format(appointmentDate, 'hh:mm a'),
+        date: format(appointmentDate, 'MM/dd/yyyy'),
+        time: format(appointmentDate, 'hh:mm a') + ' - ' + format(appointmentDate.setHours(appointmentDate.getHours() + 1), 'hh:mm a'),
         type: appointment.appointment_type === 'adhoc' ? 'Adhoc' : 'ECW',
-        status: appointment.appointment_status
+        status: appointment.appointment_status,
+        age: appointment.metadata?.age || '0',
+        gender: appointment.metadata?.sex_at_birth || 'U'
       };
     });
   };
 
-  // Load appointments when component mounts
+  // Load mock appointments when component mounts or when filters change
   useEffect(() => {
+    const loadMockAppointments = async () => {
+      setLoading(true);
+      
+      try {
+        // Simulate API call delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Filter mock appointments based on selected tab (date range)
+        let filteredAppointments = [...mockAppointments];
+        const today = new Date();
+        
+        if (selectedTab === 0) { // Today
+          filteredAppointments = mockAppointments.filter(apt => {
+            const aptDate = new Date(apt.appointment_time);
+            return aptDate.toDateString() === today.toDateString();
+          });
+        } else if (selectedTab === 1) { // Last 7 days
+          const sevenDaysAgo = new Date();
+          sevenDaysAgo.setDate(today.getDate() - 7);
+          
+          filteredAppointments = mockAppointments.filter(apt => {
+            const aptDate = new Date(apt.appointment_time);
+            return aptDate >= sevenDaysAgo && aptDate <= today;
+          });
+        } else if (selectedTab === 2) { // Last 14 days
+          const fourteenDaysAgo = new Date();
+          fourteenDaysAgo.setDate(today.getDate() - 14);
+          
+          filteredAppointments = mockAppointments.filter(apt => {
+            const aptDate = new Date(apt.appointment_time);
+            return aptDate >= fourteenDaysAgo && aptDate <= today;
+          });
+        }
+        
+        // Map to display format
+        const mappedAppointments = mapAppointmentsForDisplay(filteredAppointments);
+        setLocalAppointments(mappedAppointments);
+      } catch (error) {
+        console.error('Error loading mock appointments:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadMockAppointments();
+    
+    // Also call the real API if needed
     dispatch(fetchAppointments());
-  }, [dispatch]);
+  }, [dispatch, selectedTab]);
 
-  // Filter appointments by search query and date
-  const displayAppointments = mapAppointmentsForDisplay(appointments);
-  
-  const filteredAppointments = displayAppointments.filter(appointment => {
-    if (
-      searchQuery &&
-      !appointment.patientName.toLowerCase().includes(searchQuery.toLowerCase())
-    ) {
+  // Filter appointments by search query and status category
+  const filteredAppointments = localAppointments.filter(appointment => {
+    // Filter by search query
+    if (searchQuery && !appointment.patientName.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
     }
 
-    if (dateFilter && appointment.date !== dateFilter) {
+    // Filter by status category
+    if (selectedCategory === 'upcoming' && appointment.status !== 'scheduled') {
+      return false;
+    } else if (selectedCategory === 'progress' && appointment.status !== 'in_progress') {
+      return false;
+    } else if (selectedCategory === 'complete' && appointment.status !== 'completed') {
       return false;
     }
 
     return true;
   });
 
-  const renderAppointmentItem = ({item}: {item: AppointmentDisplay}) => (
-    <View style={styles.appointmentRow}>
-      <Text style={styles.patientNameCell}>{item.patientName}</Text>
-      <Text style={styles.dateCell}>{item.date}</Text>
-      <Text style={styles.timeCell}>{item.time}</Text>
-      <View style={styles.typeCell}>
-        <View
-          style={[
-            styles.typeTag,
-            item.type === 'ECW' ? styles.ecwTag : styles.adhocTag,
-          ]}>
-          <Text style={styles.typeText}>{item.type}</Text>
-        </View>
-      </View>
-    </View>
-  );
-
-  const renderHeader = () => (
-    <View style={styles.headerRow}>
-      <Text style={styles.headerCell}>Patient Name</Text>
-      <Text style={styles.headerCell}>Date</Text>
-      <Text style={styles.headerCell}>Time</Text>
-      <Text style={styles.headerCell}>Type of</Text>
-    </View>
-  );
-  
-  // Update date filter to today
-  const handleSelectToday = () => {
-    const today = new Date();
-    const formattedDate = format(today, 'yyyy-MM-dd');
+  const renderAppointmentCard = ({item}: {item: AppointmentDisplay}) => {
+    // Determine the border color based on the appointment status
+    let borderColor = '#27AE60'; // Default green
     
-    dispatch(updateParams({
-      appointment_date_start: formattedDate,
-      appointment_date_end: formattedDate
-    }));
-    dispatch(fetchAppointments());
+    if (item.status === 'scheduled') {
+      borderColor = '#27AE60'; // Green for upcoming
+    } else if (item.status === 'in_progress') {
+      borderColor = '#F2C94C'; // Yellow for in progress
+    } else if (item.status === 'completed') {
+      borderColor = '#2F80ED'; // Blue for completed
+    }
+
+    // Format for gender display
+    const genderDisplay = item.gender === 'M' ? 'M' : item.gender === 'F' ? 'F' : 'U';
+
+    return (
+      <View style={[styles.appointmentCard, {borderLeftColor: borderColor}]}>
+        <View style={styles.appointmentInfo}>
+          <Text style={styles.patientName}>{item.patientName}</Text>
+          <Text style={styles.patientDetails}>
+            {item.age} | {genderDisplay}
+          </Text>
+          <Text style={styles.appointmentTime}>
+            {item.time}
+          </Text>
+        </View>
+        <TouchableOpacity style={styles.voiceIconContainer}>
+          <Image
+            source={require('../assets/audio-recording.png')}
+            style={styles.voiceIcon}
+          />
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  const handleTabChange = (index: number) => {
+    setSelectedTab(index);
+  };
+
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+  };
+
+  const getCategoryCount = (category: string): number => {
+    // Count appointments in each category from our mock data
+    const count = mockAppointments.filter(appointment => {
+      if (category === 'upcoming' && appointment.appointment_status === 'scheduled') {
+        return true;
+      } else if (category === 'progress' && appointment.appointment_status === 'in_progress') {
+        return true;
+      } else if (category === 'complete' && appointment.appointment_status === 'completed') {
+        return true;
+      }
+      return false;
+    }).length;
+    
+    return count;
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.container}>
       <Sidebar
         isVisible={isSidebarOpen}
         onClose={() => {}}
         userInfo={{
-          name: 'George Milton',
+          name: 'Dr. Smith',
           role: 'Doctor',
         }}
       />
       
       <View style={styles.mainContent}>
-        <View style={styles.contentWrapper}>
-          <Text style={styles.headingText}>Appointments</Text>
-
-          <View style={styles.searchRow}>
-            <View style={styles.searchContainer}>
-              <Image
-                source={require('../assets/Search.png')}
-                style={styles.searchIcon}
-              />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholderTextColor="#999"
-              />
-            </View>
-            
-            <TouchableOpacity style={styles.filterButton}>
-              <Image
-                source={require('../assets/filter.png')}
-                style={styles.filterIcon}
-              />
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={toggleSidebar}>
+            <Image source={require('../assets/menu.png')} style={styles.menuIcon} />
+          </TouchableOpacity>
+          <Text style={styles.welcomeText}>Welcome, Dr. Smith</Text>
+          <View style={styles.headerRightIcons}>
+            <TouchableOpacity style={styles.notificationIcon}>
+              <Image source={require('../assets/notification.png')} style={styles.icon} />
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.dateSelector}
-              onPress={handleSelectToday}>
-              <Text style={styles.dateText}>Today</Text>
-              <Text style={styles.downArrow}>▼</Text>
+            <TouchableOpacity style={styles.profileIcon}>
+              <View style={styles.profileIconBg}>
+                <Text style={styles.profileIconText}>DS</Text>
+              </View>
             </TouchableOpacity>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Text style={styles.countText}>Count: {totalAppointments}</Text>
-            <Text style={styles.pageSizeText}>Page Size: {pageSize}</Text>
-          </View>
-          
-          <View style={styles.tableContainer}>
-            {renderHeader()}
-            
-            {loading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={Colors.primary} />
-              </View>
-            ) : error ? (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            ) : (
-              <FlatList
-                data={filteredAppointments}
-                renderItem={renderAppointmentItem}
-                keyExtractor={item => item.id}
-                style={styles.appointmentList}
-                ListEmptyComponent={
-                  <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyText}>No appointments found</Text>
-                  </View>
-                }
-              />
-            )}
           </View>
         </View>
+
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <Image
+            source={require('../assets/Search.png')}
+            style={styles.searchIcon}
+          />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search appointment"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholderTextColor="#999"
+          />
+          <TouchableOpacity style={styles.refreshButton}>
+            <Image
+              source={require('../assets/filter.png')}
+              style={styles.refreshIcon}
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* Tabs */}
+        <View style={styles.tabContainer}>
+          {['Today', 'Last 7 days', 'Last 14 days'].map((tab, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.tabButton,
+                selectedTab === index && styles.selectedTabButton,
+              ]}
+              onPress={() => handleTabChange(index)}>
+              <Text
+                style={[
+                  styles.tabText,
+                  selectedTab === index && styles.selectedTabText,
+                ]}>
+                {tab}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Category Selector */}
+        <View style={styles.categoryContainer}>
+          <TouchableOpacity
+            style={[
+              styles.categoryButton,
+              selectedCategory === 'upcoming' && styles.selectedCategoryButton,
+            ]}
+            onPress={() => handleCategoryChange('upcoming')}>
+            <View style={styles.categoryIconContainer}>
+              <Image
+                source={require('../assets/appointment.png')} 
+                style={styles.categoryIcon}
+              />
+            </View>
+            <Text style={styles.categoryLabel}>Upcoming</Text>
+            <Text style={styles.categoryCount}>({getCategoryCount('upcoming')})</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.categoryButton,
+              selectedCategory === 'progress' && styles.selectedCategoryButton,
+            ]}
+            onPress={() => handleCategoryChange('progress')}>
+            <View style={[styles.categoryIconContainer, {backgroundColor: '#FEF5E7'}]}>
+              <Image
+                source={require('../assets/appointments.png')}
+                style={[styles.categoryIcon, {tintColor: '#F2C94C'}]}
+              />
+            </View>
+            <Text style={styles.categoryLabel}>Progress</Text>
+            <Text style={styles.categoryCount}>({getCategoryCount('progress')})</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.categoryButton,
+              selectedCategory === 'complete' && styles.selectedCategoryButton,
+            ]}
+            onPress={() => handleCategoryChange('complete')}>
+            <View style={[styles.categoryIconContainer, {backgroundColor: '#EBF5FF'}]}>
+              <Image
+                source={require('../assets/appointments.png')}
+                style={[styles.categoryIcon, {tintColor: '#2F80ED'}]}
+              />
+            </View>
+            <Text style={styles.categoryLabel}>Complete</Text>
+            <Text style={styles.categoryCount}>({getCategoryCount('complete')})</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Appointment List */}
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+          </View>
+        ) : error ? (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filteredAppointments}
+            renderItem={renderAppointmentCard}
+            keyExtractor={item => item.id}
+            style={styles.appointmentList}
+            contentContainerStyle={styles.listContentContainer}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No appointments found</Text>
+              </View>
+            }
+          />
+        )}
       </View>
     </SafeAreaView>
   );
@@ -229,34 +375,65 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
   },
-  contentWrapper: {
-    flex: 1,
-    paddingVertical: 20,
-  },
-  headingText: {
-    fontSize: 24,
-    fontWeight: '600',
-    marginBottom: 20,
-    color: Colors.textPrimary,
-  },
-  searchRow: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 15,
+    justifyContent: 'space-between',
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  menuIcon: {
+    width: 24,
+    height: 24,
+  },
+  welcomeText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+  headerRightIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  notificationIcon: {
+    marginRight: 16,
+  },
+  icon: {
+    width: 24,
+    height: 24,
+  },
+  profileIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  profileIconBg: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileIconText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 14,
   },
   searchContainer: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'white',
     borderRadius: 10,
     paddingHorizontal: 15,
-    paddingVertical: 10,
+    marginBottom: 20,
+    height: 50,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   searchIcon: {
     width: 20,
@@ -268,128 +445,121 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.textPrimary,
   },
-  filterButton: {
-    backgroundColor: 'white',
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginHorizontal: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
+  refreshButton: {
+    padding: 5,
   },
-  filterIcon: {
+  refreshIcon: {
     width: 20,
     height: 20,
   },
-  dateSelector: {
-    backgroundColor: 'white',
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
+  tabContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
+    marginBottom: 20,
   },
-  dateText: {
-    fontSize: 15,
-    color: Colors.textPrimary,
-    marginRight: 5,
+  tabButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    marginRight: 10,
   },
-  downArrow: {
-    fontSize: 10,
+  selectedTabButton: {
+    backgroundColor: Colors.primary,
+  },
+  tabText: {
     color: Colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '500',
   },
-  infoRow: {
+  selectedTabText: {
+    color: 'white',
+  },
+  categoryContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 20,
   },
-  countText: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-  },
-  pageSizeText: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-  },
-  tableContainer: {
+  categoryButton: {
+    alignItems: 'center',
     flex: 1,
-    backgroundColor: 'white',
-    borderRadius: 15,
-    overflow: 'hidden',
+  },
+  selectedCategoryButton: {
+    // Add any styling for selected category if needed
+  },
+  categoryIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 5,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 3,
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
-  headerRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    backgroundColor: '#FAFAFA',
+  categoryIcon: {
+    width: 24,
+    height: 24,
+    tintColor: Colors.primary,
   },
-  headerCell: {
-    flex: 1,
-    fontWeight: '600',
+  categoryLabel: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    fontWeight: '500',
+    color: Colors.textPrimary,
+    textAlign: 'center',
   },
-  appointmentRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
-    paddingVertical: 12,
-    paddingHorizontal: 15,
+  categoryCount: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    textAlign: 'center',
   },
   appointmentList: {
     flex: 1,
   },
-  patientNameCell: {
-    flex: 1,
-    fontSize: 14,
-    color: Colors.textPrimary,
+  listContentContainer: {
+    paddingBottom: 20,
   },
-  dateCell: {
+  appointmentCard: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    borderLeftWidth: 4,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  appointmentInfo: {
     flex: 1,
+  },
+  patientName: {
     fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    marginBottom: 4,
+  },
+  patientDetails: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    marginBottom: 4,
+  },
+  appointmentTime: {
+    fontSize: 13,
     color: Colors.textSecondary,
   },
-  timeCell: {
-    flex: 1,
-    fontSize: 14,
-    color: Colors.textSecondary,
+  voiceIconContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  typeCell: {
-    flex: 1,
-    alignItems: 'flex-start',
-  },
-  typeTag: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  ecwTag: {
-    backgroundColor: Colors.lightGreen,
-  },
-  adhocTag: {
-    backgroundColor: '#FFF3CD', // Light yellow for Adhoc tags
-  },
-  typeText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: Colors.textPrimary,
+  voiceIcon: {
+    width: 24,
+    height: 24,
   },
   loadingContainer: {
     flex: 1, 

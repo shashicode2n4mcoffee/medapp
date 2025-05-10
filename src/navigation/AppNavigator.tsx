@@ -77,9 +77,7 @@ const AppNavigator = () => {
         <Stack.Screen 
           name="Appointments" 
           component={AppointmentScreen}
-          options={{ 
-            header: () => <Header onMenuPress={toggleSidebar} />
-          }}
+          options={{ headerShown: false }}
         />
       </Stack.Navigator>
     </NavigationContainer>
