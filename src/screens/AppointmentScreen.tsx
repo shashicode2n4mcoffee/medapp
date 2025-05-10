@@ -19,6 +19,14 @@ import {useAppDispatch, useAppSelector} from '../redux/store';
 import {fetchAppointments, updateParams} from '../redux/slices/appointmentsSlice';
 import {Appointment as AppointmentType} from '../api/appointmentService';
 import {format, parseISO} from 'date-fns';
+const micIcon = require('../assets/start.png');
+const upcomingOff = require('../assets/upcoming-off.png');
+const upcomingOn = require('../assets/upcoming-on.png');
+const progressOff = require('../assets/progress-off.png');
+const progressOn = require('../assets/progress-on.png');
+const completeOff = require('../assets/export-off.png');
+const completeOn = require('../assets/export-on.png');
+
 // Import mock data
 import mockAppointments from '../mock/mockAppointments';
 
@@ -173,17 +181,14 @@ const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
     return (
       <View style={[styles.appointmentCard, {borderLeftColor: borderColor}]}>
         <View style={styles.appointmentInfo}>
-          <Text style={styles.patientName}>{item.patientName}</Text>
-          <Text style={styles.patientDetails}>
-            {item.age} | {genderDisplay}
-          </Text>
+          <Text style={styles.patientName}>{item.patientName} | {item.age} | {genderDisplay}</Text>
           <Text style={styles.appointmentTime}>
             {item.time}
           </Text>
         </View>
         <TouchableOpacity style={styles.voiceIconContainer}>
           <Image
-            source={require('../assets/audio-recording.png')}
+            source={micIcon}
             style={styles.voiceIcon}
           />
         </TouchableOpacity>
@@ -297,7 +302,7 @@ const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
             onPress={() => handleCategoryChange('upcoming')}>
             <View style={styles.categoryIconContainer}>
               <Image
-                source={require('../assets/appointment.png')} 
+                source={upcomingOff} 
                 style={styles.categoryIcon}
               />
             </View>
@@ -311,10 +316,10 @@ const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
               selectedCategory === 'progress' && styles.selectedCategoryButton,
             ]}
             onPress={() => handleCategoryChange('progress')}>
-            <View style={[styles.categoryIconContainer, {backgroundColor: '#FEF5E7'}]}>
+            <View style={[styles.categoryIconContainer]}>
               <Image
-                source={require('../assets/appointments.png')}
-                style={[styles.categoryIcon, {tintColor: '#F2C94C'}]}
+                source={progressOff}
+                style={[styles.categoryIcon]}
               />
             </View>
             <Text style={styles.categoryLabel}>Progress</Text>
@@ -327,10 +332,10 @@ const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
               selectedCategory === 'complete' && styles.selectedCategoryButton,
             ]}
             onPress={() => handleCategoryChange('complete')}>
-            <View style={[styles.categoryIconContainer, {backgroundColor: '#EBF5FF'}]}>
+            <View style={[styles.categoryIconContainer]}>
               <Image
-                source={require('../assets/appointments.png')}
-                style={[styles.categoryIcon, {tintColor: '#2F80ED'}]}
+                source={completeOff}
+                style={[styles.categoryIcon]}
               />
             </View>
             <Text style={styles.categoryLabel}>Complete</Text>
@@ -369,7 +374,7 @@ const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light,
+    marginTop: 32,
   },
   mainContent: {
     flex: 1,
@@ -455,6 +460,10 @@ const styles = StyleSheet.create({
   tabContainer: {
     flexDirection: 'row',
     marginBottom: 20,
+    display: 'flex',
+    justifyContent: 'space-between', 
+    alignItems: 'center',
+    paddingHorizontal: 10,
   },
   tabButton: {
     paddingVertical: 12,
@@ -502,7 +511,6 @@ const styles = StyleSheet.create({
   categoryIcon: {
     width: 24,
     height: 24,
-    tintColor: Colors.primary,
   },
   categoryLabel: {
     fontSize: 14,
