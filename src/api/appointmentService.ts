@@ -73,7 +73,6 @@ class AppointmentService {
     
     return apiClient.get<AppointmentListResponse>(url);
   }
-
   /**
    * Create a new record for an appointment
    * @param data - Record creation data
@@ -82,6 +81,16 @@ class AppointmentService {
   async createRecord(data: CreateRecordRequest): Promise<ApiResponse<CreateRecordResponse>> {
     const url = '/api/V2/account/records/create/';
     return apiClient.post<CreateRecordResponse>(url, data);
+  }
+
+  /**
+   * Get appointment details by ID
+   * @param appointmentId - ID of the appointment
+   * @returns Promise with appointment details
+   */
+  async getAppointmentDetail(appointmentId: number): Promise<ApiResponse<Appointment>> {
+    const url = `/api/V2/account/appointment/${appointmentId}/detail/`;
+    return apiClient.get<Appointment>(url);
   }
 }
 

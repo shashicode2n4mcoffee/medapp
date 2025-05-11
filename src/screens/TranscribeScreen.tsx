@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   StyleSheet,
@@ -14,6 +14,7 @@ import Sidebar from '../components/Sidebar';
 import {RootStackParamList} from '../navigation/AppNavigator';
 import {RouteProp} from '@react-navigation/native';
 import {useSidebar} from '../context/SidebarContext';
+import {useAppSelector} from '../redux/store';
 import logger from '../utils/logger';
 
 type TranscribeScreenProps = {
@@ -25,17 +26,33 @@ const TranscribeScreen = ({navigation, route}: TranscribeScreenProps) => {
   const isDarkMode = false;
   const [recognizedText, setRecognizedText] = useState<string>('');
   const [audioData, setAudioData] = useState<any[]>([]);
-  const patientInfo = route.params?.patientInfo || {
-    name: 'George Smith',
-    age: '43',
-    gender: 'Male',
-    mrn: '430897134',
-    uid: '430897134',
-  };
+  
+  // Get appointment details from Redux store
+  const {selectedAppointmentDetail} = useAppSelector(state => state.appointments);
+  
   const appointmentId = route.params?.appointmentId;
   const recordId = route.params?.recordId;
+  
+  // Build patient info from appointment details or use default
+  const patientInfo = selectedAppointmentDetail 
+    ? {
+        name: selectedAppointmentDetail.appointment_name || 'No Name',
+        age: selectedAppointmentDetail.metadata?.age || '',
+        gender: selectedAppointmentDetail.metadata?.sex_at_birth || '',
+        mrn: selectedAppointmentDetail.identifier || '',
+        uid: selectedAppointmentDetail.identifier || '',
+      }
+    : route.params?.patientInfo || {
+        name: 'George Smith',
+        age: '43',
+        gender: 'Male',
+        mrn: '430897134',
+        uid: '430897134',
+      };
+      
   logger.debug('Appointment ID received:', appointmentId);
   logger.debug('Record ID received:', recordId);
+  logger.debug('Selected Appointment Detail:', selectedAppointmentDetail);
 
   const {isSidebarOpen} = useSidebar();
 
@@ -46,6 +63,15 @@ const TranscribeScreen = ({navigation, route}: TranscribeScreenProps) => {
     if (audio) {
       setAudioData(audio);
       logger.debug('Audio data length:', audio.length);
+    }
+    
+    // Log if using appointment details from Redux
+    if (selectedAppointmentDetail) {
+      logger.info('Using appointment details from Redux:', {
+        id: selectedAppointmentDetail.id,
+        name: selectedAppointmentDetail.appointment_name,
+        status: selectedAppointmentDetail.appointment_status,
+      });
     }
 
     // Log submission data including appointment and record IDs

@@ -16,6 +16,7 @@ interface AppointmentsState {
   error: string | null;
   currentParams: GetAppointmentsParams;
   record: CreateRecordResponse | null;
+  selectedAppointmentDetail: Appointment | null;
 }
 
 // Helper function to get today's date in YYYY-MM-DD format
@@ -44,6 +45,7 @@ const initialState: AppointmentsState = {
     order_by_desc: true,
   },
   record: null,
+  selectedAppointmentDetail: null,
 };
 
 export const fetchAppointments = createAsyncThunk<
@@ -116,6 +118,28 @@ export const createRecord = createAsyncThunk<
   }
 });
 
+export const fetchAppointmentDetail = createAsyncThunk<
+  Appointment,
+  number,
+  {rejectValue: string}
+>('appointments/fetchAppointmentDetail', async (appointmentId, {rejectWithValue}) => {
+  try {
+    const response = await appointmentService.getAppointmentDetail(appointmentId);
+
+    if (!response.success || !response.data) {
+      return rejectWithValue(
+        response.error?.message || 'Failed to fetch appointment details',
+      );
+    }
+
+    return response.data;
+  } catch (error: any) {
+    return rejectWithValue(
+      error.message || 'An unknown error occurred while fetching appointment details',
+    );
+  }
+});
+
 const appointmentsSlice = createSlice({
   name: 'appointments',
   initialState,
@@ -168,11 +192,28 @@ const appointmentsSlice = createSlice({
           state.record = action.payload;
           state.error = null;
         },
-      )
-      .addCase(createRecord.rejected, (state, action) => {
+      )      .addCase(createRecord.rejected, (state, action) => {
         state.loading = false;
         state.error =
           (action.payload as string) || 'An error occurred creating record';
+      })
+      // Add cases for fetchAppointmentDetail
+      .addCase(fetchAppointmentDetail.pending, state => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(
+        fetchAppointmentDetail.fulfilled,
+        (state, action: PayloadAction<Appointment>) => {
+          state.loading = false;
+          state.selectedAppointmentDetail = action.payload;
+          state.error = null;
+        },
+      )
+      .addCase(fetchAppointmentDetail.rejected, (state, action) => {
+        state.loading = false;
+        state.error =
+          (action.payload as string) || 'An error occurred fetching appointment details';
       });
   },
 });

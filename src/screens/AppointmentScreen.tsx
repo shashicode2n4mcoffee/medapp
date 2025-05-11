@@ -21,6 +21,7 @@ import {
   fetchAppointments,
   updateParams,
   createRecord,
+  fetchAppointmentDetail,
 } from '../redux/slices/appointmentsSlice';
 import {
   Appointment as AppointmentType,
@@ -161,22 +162,38 @@ const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
       }),
     );
     // No need to set local state here as we'll handle it in a separate useEffect
-  }, [dispatch, selectedTab]);
-  // UseEffect to navigate when record is created successfully
+  }, [dispatch, selectedTab]);  // UseEffect to fetch appointment details and navigate when record is created successfully
   useEffect(() => {
     if (record) {
       logger.info('Record created successfully in state:', record);
-      // Navigate to transcribe screen with appointment ID and record ID
-      if (navigation) {
-        navigation.navigate('Transcribe', {
-          appointmentId: record.appointment_id.toString(),
-          recordId: record.record_id.toString(),
+      
+      // Fetch appointment details
+      dispatch(fetchAppointmentDetail(record.appointment_id))
+        .unwrap()
+        .then(() => {
+          logger.info('Appointment details fetched successfully');
+          // Navigate to transcribe screen with appointment ID and record ID
+          if (navigation) {
+            navigation.navigate('Transcribe', {
+              appointmentId: record.appointment_id.toString(),
+              recordId: record.record_id.toString(),
+            });
+          } else {
+            logger.warn('Navigation prop is not available');
+          }
+        })
+        .catch((error) => {
+          logger.error('Failed to fetch appointment details:', error);
+          // Still navigate even if fetching details failed
+          if (navigation) {
+            navigation.navigate('Transcribe', {
+              appointmentId: record.appointment_id.toString(),
+              recordId: record.record_id.toString(),
+            });
+          }
         });
-      } else {
-        logger.warn('Navigation prop is not available');
-      }
     }
-  }, [record, navigation]);
+  }, [record, navigation, dispatch]);
 
   // Transform API appointments to display format when they change
   useEffect(() => {
