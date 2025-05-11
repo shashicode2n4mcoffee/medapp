@@ -17,8 +17,8 @@ import Sidebar from '../components/Sidebar';
 import {useSidebar} from '../context/SidebarContext';
 import {useAppDispatch, useAppSelector} from '../redux/store';
 import {fetchAppointments, updateParams} from '../redux/slices/appointmentsSlice';
-import {Appointment as AppointmentType} from '../api/appointmentService';
-import {format, parseISO} from 'date-fns';
+import {Appointment as AppointmentType, GetAppointmentsParams} from '../api/appointmentService';
+import {format, parseISO, subDays} from 'date-fns';
 const micIcon = require('../assets/start.png');
 const upcomingOff = require('../assets/upcoming-off.png');
 const upcomingOn = require('../assets/upcoming-on.png');
@@ -46,19 +46,51 @@ interface AppointmentDisplay {
   gender?: string;
 }
 
+// Helper function to format date as YYYY-MM-DD
+const formatDateForAPI = (date: Date): string => {
+  return format(date, 'yyyy-MM-dd');
+};
+
+// Helper function to get date parameters for API
+const getDateRangeParams = (tabIndex: number): Pick<GetAppointmentsParams, 'appointment_date_start' | 'appointment_date_end'> => {
+  const today = new Date();
+  
+  switch (tabIndex) {
+    case 0: // Today
+      return {
+        appointment_date_start: formatDateForAPI(today),
+        appointment_date_end: formatDateForAPI(today)
+      };
+    case 1: // Last 7 days
+      return {
+        appointment_date_start: formatDateForAPI(subDays(today, 7)),
+        appointment_date_end: formatDateForAPI(today)
+      };
+    case 2: // Last 14 days
+      return {
+        appointment_date_start: formatDateForAPI(subDays(today, 14)),
+        appointment_date_end: formatDateForAPI(today)
+      };
+    default:
+      return {
+        appointment_date_start: formatDateForAPI(today),
+        appointment_date_end: formatDateForAPI(today)
+      };
+  }
+};
+
 const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
   const {isSidebarOpen, toggleSidebar} = useSidebar();
   const dispatch = useAppDispatch();
   
-  const [searchQuery, setSearchQuery] = useState('');
+  // Get appointments from Redux
+  const {appointments = [], error = null, total: totalAppointments = 0} = 
+    useAppSelector(state => state.appointments || {});
+    const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState(0); // 0: Today, 1: Last 7 days, 2: Last 14 days
   const [selectedCategory, setSelectedCategory] = useState('upcoming'); // 'upcoming', 'progress', 'complete'
   const [loading, setLoading] = useState(false);
   const [localAppointments, setLocalAppointments] = useState<AppointmentDisplay[]>([]);
-
-  // Get appointments from Redux (optional, we'll use mock data)
-  const {appointments = [], error = null, total: totalAppointments = 0} = 
-    useAppSelector(state => state.appointments || {});
 
   // Map API appointments to display format
   const mapAppointmentsForDisplay = (apiAppointments: AppointmentType[]): AppointmentDisplay[] => {
@@ -91,7 +123,6 @@ const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
       };
     });
   };
-
   // Load mock appointments when component mounts or when filters change
   useEffect(() => {
     const loadMockAppointments = async () => {
@@ -105,28 +136,18 @@ const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
         let filteredAppointments = [...mockAppointments];
         const today = new Date();
         
-        if (selectedTab === 0) { // Today
-          filteredAppointments = mockAppointments.filter(apt => {
-            const aptDate = new Date(apt.appointment_time);
-            return aptDate.toDateString() === today.toDateString();
-          });
-        } else if (selectedTab === 1) { // Last 7 days
-          const sevenDaysAgo = new Date();
-          sevenDaysAgo.setDate(today.getDate() - 7);
-          
-          filteredAppointments = mockAppointments.filter(apt => {
-            const aptDate = new Date(apt.appointment_time);
-            return aptDate >= sevenDaysAgo && aptDate <= today;
-          });
-        } else if (selectedTab === 2) { // Last 14 days
-          const fourteenDaysAgo = new Date();
-          fourteenDaysAgo.setDate(today.getDate() - 14);
-          
-          filteredAppointments = mockAppointments.filter(apt => {
-            const aptDate = new Date(apt.appointment_time);
-            return aptDate >= fourteenDaysAgo && aptDate <= today;
-          });
-        }
+        // Get the date range based on selected tab
+        const dateRange = getDateRangeParams(selectedTab);
+        const startDate = parseISO(dateRange.appointment_date_start);
+        const endDate = parseISO(dateRange.appointment_date_end);
+        
+        // Set end of day for end date to include all appointments on that day
+        endDate.setHours(23, 59, 59, 999);
+        
+        filteredAppointments = mockAppointments.filter(apt => {
+          const aptDate = new Date(apt.appointment_time);
+          return aptDate >= startDate && aptDate <= endDate;
+        });
         
         // Map to display format
         const mappedAppointments = mapAppointmentsForDisplay(filteredAppointments);
@@ -140,8 +161,15 @@ const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
     
     loadMockAppointments();
     
-    // Also call the real API if needed
-    dispatch(fetchAppointments());
+    // Call the real API with appropriate date parameters
+    const dateParams = getDateRangeParams(selectedTab);
+    dispatch(updateParams(dateParams));
+    dispatch(fetchAppointments({
+      ...dateParams,
+      limit: 30,
+      offset: 0,
+      order_by_desc: true
+    }));
   }, [dispatch, selectedTab]);
 
   // Filter appointments by search query and status category
@@ -162,7 +190,6 @@ const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
 
     return true;
   });
-
   const renderAppointmentCard = ({item}: {item: AppointmentDisplay}) => {
     // Determine the border color based on the appointment status
     let borderColor = '#27AE60'; // Default green
@@ -198,6 +225,19 @@ const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
 
   const handleTabChange = (index: number) => {
     setSelectedTab(index);
+    
+    // Update the date parameters in Redux state
+    const dateParams = getDateRangeParams(index);
+    dispatch(updateParams(dateParams));
+    
+    // Fetch appointments with new date parameters
+    dispatch(fetchAppointments({
+      ...dateParams,
+      status: undefined, // Don't filter by status in API call
+      limit: 30,
+      offset: 0,
+      order_by_desc: true
+    }));
   };
 
   const handleCategoryChange = (category: string) => {

@@ -15,6 +15,13 @@ const getTodayDate = (): string => {
   return format(new Date(), 'yyyy-MM-dd');
 };
 
+// Helper function to get date from N days ago
+const getDateFromDaysAgo = (days: number): string => {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return format(date, 'yyyy-MM-dd');
+};
+
 const initialState: AppointmentsState = {
   appointments: [],
   total: 0,
