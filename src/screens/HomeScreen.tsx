@@ -8,6 +8,7 @@ import InputField from '../components/InputField';
 import Sidebar from '../components/Sidebar';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useSidebar } from '../context/SidebarContext';
+import logger from '../utils/logger';
 
 type HomeScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -50,13 +51,12 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
       }
     });
   };
-  
-  const handleUploadAudio = () => {
-    console.log('Upload audio functionality to be implemented');
+    const handleUploadAudio = () => {
+    logger.info('Upload audio functionality to be implemented');
   };
 
   const handleHelpSupport = () => {
-    console.log('Help/support functionality to be implemented');
+    logger.info('Help/support functionality to be implemented');
   };
 
   const selectVisitType = (option: string) => {

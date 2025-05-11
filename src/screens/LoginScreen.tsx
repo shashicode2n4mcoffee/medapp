@@ -12,6 +12,7 @@ import { loginUser } from '../redux/slices/authSlice';
 import { useAppDispatch, useAppSelector } from '../redux/store';
 import { STORAGE_KEYS } from '../utils/literals/appliterals';
 import { restoreSessionCookies, hasStoredCredentials, getStoredUserData } from '../utils/authStorage';
+import logger from '../utils/logger';
 
 type LoginScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Login'>;
@@ -50,17 +51,15 @@ const LoginScreen = ({ navigation }: LoginScreenProps) => {
             if (userData.email) {
               setEmail(userData.email);
             }
-            
-            // Check if user is already authenticated via Redux state
+              // Check if user is already authenticated via Redux state
             if (!user) {
-              console.log('Found saved login credentials');
+              logger.info('Found saved login credentials');
               // Note: For enhanced security, we don't pre-fill the password field
               // But you could implement auto-login here if desired
             }
           }
-        }
-      } catch (error) {
-        console.error('Error retrieving saved credentials:', error);
+        }      } catch (error) {
+        logger.error('Error retrieving saved credentials:', error);
       }
     };
     
@@ -102,10 +101,9 @@ const LoginScreen = ({ navigation }: LoginScreenProps) => {
           await AsyncStorage.setItem(STORAGE_KEYS.CSRF_TOKEN, cookies.csrftoken.value);
         }
       }
-      
-      console.log('Authentication data saved successfully');
+        logger.info('Authentication data saved successfully');
     } catch (error) {
-      console.error('Error saving authentication data:', error);
+      logger.error('Error saving authentication data:', error);
     }
   };
 

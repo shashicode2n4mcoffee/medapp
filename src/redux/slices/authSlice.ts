@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authService } from '../../api';
 import { STORAGE_KEYS } from '../../utils/literals/appliterals';
+import logger from '../../utils/logger';
 
 interface EmrSystemDetails {
   id: number;
@@ -76,7 +77,8 @@ export const loginUser = createAsyncThunk<
 
 const authSlice = createSlice({
   name: 'auth',
-  initialState,  reducers: {
+  initialState,
+  reducers: {
     logout: (state) => {
       // Update state
       state.user = null;
@@ -89,7 +91,7 @@ const authSlice = createSlice({
         STORAGE_KEYS.CSRF_TOKEN,
         STORAGE_KEYS.REMEMBER_ME,
       ]).catch(error => {
-        console.error('Error clearing authentication data from storage:', error);
+        logger.error('Error clearing authentication data from storage:', error);
       });
     },
     clearError: (state) => {

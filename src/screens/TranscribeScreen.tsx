@@ -1,57 +1,75 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors } from '../theme/Colors';
+import React, {useState} from 'react';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import {Colors} from '../theme/Colors';
 import SpeechToText from '../components/SpeechToText';
 import Sidebar from '../components/Sidebar';
-import { RootStackParamList } from '../navigation/AppNavigator';
-import { RouteProp } from '@react-navigation/native';
-import { useSidebar } from '../context/SidebarContext';
+import {RootStackParamList} from '../navigation/AppNavigator';
+import {RouteProp} from '@react-navigation/native';
+import {useSidebar} from '../context/SidebarContext';
+import logger from '../utils/logger';
 
 type TranscribeScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Transcribe'>;
   route: RouteProp<RootStackParamList, 'Transcribe'>;
 };
 
-const TranscribeScreen = ({ navigation, route }: TranscribeScreenProps) => {
+const TranscribeScreen = ({navigation, route}: TranscribeScreenProps) => {
   const isDarkMode = false;
   const [recognizedText, setRecognizedText] = useState<string>('');
   const [audioData, setAudioData] = useState<any[]>([]);
-    const patientInfo = route.params?.patientInfo || {
+  const patientInfo = route.params?.patientInfo || {
     name: 'George Smith',
     age: '43',
     gender: 'Male',
     mrn: '430897134',
-    uid: '430897134'
+    uid: '430897134',
   };
-  
   const appointmentId = route.params?.appointmentId;
-  console.log('Appointment ID received:', appointmentId);
-  
-  const { isSidebarOpen } = useSidebar();
-  
+  const recordId = route.params?.recordId;
+  logger.debug('Appointment ID received:', appointmentId);
+  logger.debug('Record ID received:', recordId);
+
+  const {isSidebarOpen} = useSidebar();
+
   const handleSpeechResult = (text: string) => {
     setRecognizedText(text);
-  };
-  
-  const handleSubmit = (text: string, audio?: any[]) => {
-    console.log('Submitted text:', text);
+  };  const handleSubmit = (text: string, audio?: any[], submissionData?: any) => {
+    logger.info('Submitted text:', text);
     if (audio) {
       setAudioData(audio);
-      console.log('Audio data length:', audio.length);
+      logger.debug('Audio data length:', audio.length);
+    }
+
+    // Log submission data including appointment and record IDs
+    if (submissionData) {
+      logger.debug('Submission data:', submissionData);
+      logger.info(
+        'Appointment ID from submission:',
+        submissionData.appointmentId,
+      );
+      logger.info('Record ID from submission:', submissionData.recordId);
+    } else {
+      logger.info('Using route params - Appointment ID:', appointmentId);
+      logger.info('Using route params - Record ID:', recordId);
     }
   };
-  
+
   return (
-    <SafeAreaView 
+    <SafeAreaView
       style={[
-        styles.container, 
-        { backgroundColor: isDarkMode ? Colors.dark : Colors.light }
+        styles.container,
+        {backgroundColor: isDarkMode ? Colors.dark : Colors.light},
       ]}
-      edges={['bottom', 'left', 'right']}
-    >
-      <Sidebar 
+      edges={['bottom', 'left', 'right']}>
+      <Sidebar
         isVisible={isSidebarOpen}
         onClose={() => {}}
         userInfo={{
@@ -59,22 +77,19 @@ const TranscribeScreen = ({ navigation, route }: TranscribeScreenProps) => {
           role: 'Doctor',
         }}
       />
-      
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardAvoidingView}
-      >
-        <ScrollView 
+        style={styles.keyboardAvoidingView}>
+        <ScrollView
           contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-        >
+          keyboardShouldPersistTaps="handled">
           <View style={styles.content}>
             <View style={styles.speechContainer}>
-              <SpeechToText 
+              <SpeechToText
                 onSpeechResult={handleSpeechResult}
-                onSubmit={handleSubmit}
-                onSaveNote={(text) => {
-                  console.log('Saving note:', text);
+                onSubmit={handleSubmit}                onSaveNote={text => {
+                  logger.info('Saving note:', text);
                 }}
                 placeholder="Tap the microphone and start speaking"
                 patientInfo={{
@@ -82,8 +97,10 @@ const TranscribeScreen = ({ navigation, route }: TranscribeScreenProps) => {
                   age: patientInfo.age,
                   gender: patientInfo.gender,
                   mrn: patientInfo.mrn,
-                  uid: patientInfo.mrn
+                  uid: patientInfo.mrn,
                 }}
+                appointmentId={appointmentId}
+                recordId={recordId}
               />
             </View>
           </View>

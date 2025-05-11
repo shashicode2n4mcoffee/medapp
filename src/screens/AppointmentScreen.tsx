@@ -16,9 +16,11 @@ import {RootStackParamList} from '../navigation/AppNavigator';
 import Sidebar from '../components/Sidebar';
 import {useSidebar} from '../context/SidebarContext';
 import {useAppDispatch, useAppSelector} from '../redux/store';
+import logger from '../utils/logger';
 import {
   fetchAppointments,
   updateParams,
+  createRecord,
 } from '../redux/slices/appointmentsSlice';
 import {
   Appointment as AppointmentType,
@@ -89,13 +91,13 @@ const getDateRangeParams = (
 
 const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
   const {isSidebarOpen, toggleSidebar} = useSidebar();
-  const dispatch = useAppDispatch();
-  // Get appointments from Redux
+  const dispatch = useAppDispatch();  // Get appointments from Redux
   const {
     appointments = [],
     loading = false,
     error = null,
     total: totalAppointments = 0,
+    record = null,
   } = useAppSelector(state => state.appointments || {});
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState(0); // 0: Today, 1: Last 7 days, 2: Last 14 days
@@ -160,16 +162,31 @@ const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
     );
     // No need to set local state here as we'll handle it in a separate useEffect
   }, [dispatch, selectedTab]);
+  // UseEffect to navigate when record is created successfully
+  useEffect(() => {
+    if (record) {
+      logger.info('Record created successfully in state:', record);
+      // Navigate to transcribe screen with appointment ID and record ID
+      if (navigation) {
+        navigation.navigate('Transcribe', {
+          appointmentId: record.appointment_id.toString(),
+          recordId: record.record_id.toString(),
+        });
+      } else {
+        logger.warn('Navigation prop is not available');
+      }
+    }
+  }, [record, navigation]);
+
   // Transform API appointments to display format when they change
   useEffect(() => {
     if (appointments && Array.isArray(appointments)) {
       const mappedAppointments = mapAppointmentsForDisplay(appointments);
       setDisplayAppointments(mappedAppointments);
     }
-  }, [appointments]);
-  // Filter appointments by search query and status category
+  }, [appointments]);  // Filter appointments by search query and status category
   const filteredAppointments = displayAppointments.filter(appointment => {
-    console.log('Filtered Appointments:', appointment, displayAppointments);
+    logger.debug('Filtered Appointments:', appointment);
     // Filter by search query
     if (
       searchQuery &&
@@ -275,19 +292,36 @@ const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
     }).length;
 
     return count;
-  };
-  // Interface for handle mic press function parameters
+  }; // Interface for handle mic press function parameters
   interface MicPressParams {
     appointmentId: string;
-  }
-
-  const handleMicPress = ({appointmentId}: MicPressParams): void => {
-    // Navigate to transcribe screen with appointment ID as parameter
-    if (navigation) {
-      navigation.navigate('Transcribe', {appointmentId});
-    } else {
-      console.warn('Navigation prop is not available');
+  }  const handleMicPress = ({appointmentId}: MicPressParams): void => {    // Create a record first with the appointment ID
+    const appointmentIdNumber = parseInt(appointmentId, 10);
+    if (isNaN(appointmentIdNumber)) {
+      logger.error('Invalid appointment ID:', appointmentId);
+      return;
     }
+
+    // Current date and time for start_time
+    const currentDate = new Date();
+    const formattedDate = format(currentDate, "yyyy-MM-dd'T'HH:mm:ss.SSS");
+
+    // Prepare payload for create record API
+    const recordPayload = {
+      appointment_id: appointmentIdNumber,
+      start_time: formattedDate,
+      content_type: 'audio/webm',
+      file_type: 'webm',
+    };    // Only dispatch the createRecord action - navigation will happen in useEffect
+    dispatch(createRecord(recordPayload))
+      .unwrap()
+      .catch((error: Error) => {
+        logger.error('Failed to create record:', error);
+        // Navigate as fallback in case of error
+        if (navigation) {
+          navigation.navigate('Transcribe', {appointmentId});
+        }
+      });
   };
 
   return (

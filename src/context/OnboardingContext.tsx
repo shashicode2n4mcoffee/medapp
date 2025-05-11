@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import logger from '../utils/logger';
 
 type OnboardingContextType = {
   hasCompletedOnboarding: boolean;
@@ -16,12 +17,11 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    const checkOnboardingStatus = async () => {
-      try {
+    const checkOnboardingStatus = async () => {      try {
         const value = await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY);
         setHasCompletedOnboarding(value === 'true');
       } catch (error) {
-        console.error('Error checking onboarding status:', error);
+        logger.error('Error checking onboarding status:', error);
       } finally {
         setIsLoading(false);
       }
@@ -30,12 +30,11 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     checkOnboardingStatus();
   }, []);
 
-  const setOnboardingComplete = async (value: boolean) => {
-    try {
+  const setOnboardingComplete = async (value: boolean) => {    try {
       await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, value.toString());
       setHasCompletedOnboarding(value);
     } catch (error) {
-      console.error('Error setting onboarding status:', error);
+      logger.error('Error setting onboarding status:', error);
     }
   };
 

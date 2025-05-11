@@ -25,6 +25,7 @@ export type RootStackParamList = {
       mrn: string;
     };
     appointmentId?: string;
+    recordId?: string;
   };
   Appointments: undefined;
 };

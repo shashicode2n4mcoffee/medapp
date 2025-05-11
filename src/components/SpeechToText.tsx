@@ -1,7 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, PermissionsAndroid, useColorScheme, Image, ScrollView } from 'react-native';
-import Voice, { SpeechResultsEvent, SpeechErrorEvent } from '@react-native-voice/voice';
-import { Colors } from '../theme/Colors';
+import React, {useState, useEffect, useRef} from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Platform,
+  PermissionsAndroid,
+  useColorScheme,
+  Image,
+  ScrollView,
+} from 'react-native';
+import Voice, {
+  SpeechResultsEvent,
+  SpeechErrorEvent,
+} from '@react-native-voice/voice';
+import {Colors} from '../theme/Colors';
 import logger from '../utils/logger';
 import TranscriptLoadingModal from './TranscriptLoadingModal';
 import useTranscriptionAPI from '../hooks/useTranscriptionAPI';
@@ -20,9 +33,11 @@ interface PatientInfo {
 interface SpeechToTextProps {
   onSpeechResult?: (text: string) => void;
   placeholder?: string;
-  onSubmit?: (text: string, audioData?: any) => void;
+  onSubmit?: (text: string, audioData?: any, submissionData?: any) => void;
   onSaveNote?: (text: string) => void;
   patientInfo?: PatientInfo;
+  appointmentId?: string;
+  recordId?: string;
 }
 
 const SpeechToText: React.FC<SpeechToTextProps> = ({
@@ -35,8 +50,10 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
     age: '43',
     gender: 'Male',
     mrn: '430897134',
-    uid: '430897134'
-  }
+    uid: '430897134',
+  },
+  appointmentId,
+  recordId,
 }) => {
   const isDarkMode = useColorScheme() === 'dark';
   const [isListening, setIsListening] = useState(false);
@@ -45,22 +62,27 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
   const [hasPermission, setHasPermission] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const accumulatedTextRef = useRef('');
-  const isListeningRef = useRef(false); 
-  const isPausedRef = useRef(false);   
+  const isListeningRef = useRef(false);
+  const isPausedRef = useRef(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [showTranscriptModal, setShowTranscriptModal] = useState(false);
   const audioDataRef = useRef<any[]>([]);
-
   const transcriptionAPI = useTranscriptionAPI({
-    recordId: 5826,
-    onTranscriptionComplete: (result) => {
+    // Use the recordId from props if available, otherwise use a default
+    recordId: recordId ? parseInt(recordId, 10) : 5826,
+    onTranscriptionComplete: result => {
       logger.debug('Transcription completed', result);
+      // Log the appointment and record IDs for debugging
+      logger.debug('Using Appointment ID:', appointmentId);
+      logger.debug('Using Record ID:', recordId);
     },
-    onError: (error) => {
+    onError: error => {
       logger.error('Transcription error', error);
-      setError('Error during transcription: ' + (error.message || 'Unknown error'));
-    }
+      setError(
+        'Error during transcription: ' + (error.message || 'Unknown error'),
+      );
+    },
   });
 
   useEffect(() => {
@@ -72,22 +94,22 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
       if (Voice.onSpeechVolumeChanged) {
         Voice.onSpeechVolumeChanged = onSpeechVolumeChanged;
       }
-      
+
       if (Platform.OS === 'android') {
         try {
           const granted = await PermissionsAndroid.request(
             PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
             {
               title: 'Microphone Permission',
-              message: 'This app needs access to your microphone for speech recognition.',
+              message:
+                'This app needs access to your microphone for speech recognition.',
               buttonPositive: 'OK',
               buttonNegative: 'Cancel',
-            }
+            },
           );
-          setHasPermission(granted === PermissionsAndroid.RESULTS.GRANTED);
-        } catch (err) {
+          setHasPermission(granted === PermissionsAndroid.RESULTS.GRANTED);        } catch (err) {
           setError('Error requesting microphone permission');
-          console.error(err);
+          logger.error('Error requesting microphone permission', err);
         }
       } else {
         setHasPermission(true);
@@ -104,13 +126,13 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
-      
+
       if (transcriptionAPI.isTranscribing) {
         transcriptionAPI.stopTranscription().catch(err => {
           logger.error('Error stopping transcription on unmount', err);
         });
       }
-      
+
       Voice.destroy().then(Voice.removeAllListeners);
     };
   }, []);
@@ -124,7 +146,7 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-    
+
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
@@ -135,7 +157,10 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
   useEffect(() => {
     if (isPaused) {
       Voice.stop().catch(e => {
-        logger.error('Error stopping voice recognition on pause state change', e);
+        logger.error(
+          'Error stopping voice recognition on pause state change',
+          e,
+        );
       });
     }
   }, [isPaused]);
@@ -143,7 +168,9 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${mins.toString().padStart(2, '0')}:${secs
+      .toString()
+      .padStart(2, '0')}`;
   };
 
   const onSpeechStart = () => {
@@ -160,7 +187,7 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
 
   const onSpeechError = (e: SpeechErrorEvent) => {
     logger.error('Speech error', e);
-    
+
     if (isListeningRef.current && !isPausedRef.current) {
       try {
         setTimeout(() => {
@@ -178,40 +205,41 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
 
   const onSpeechPartialResults = (e: SpeechResultsEvent) => {
     if (isPausedRef.current) return;
-    
+
     if (e.value && e.value[0]) {
       const partialResult = e.value[0];
-      
-      const currentText = accumulatedTextRef.current 
+
+      const currentText = accumulatedTextRef.current
         ? accumulatedTextRef.current + ' ' + partialResult
         : partialResult;
-        
+
       setSpeechText(currentText);
     }
   };
 
   const onSpeechResults = (e: SpeechResultsEvent) => {
     if (isPausedRef.current) return;
-    
+
     if (e.value && e.value[0]) {
       const result = e.value[0];
-      
+
       const updatedText = accumulatedTextRef.current
         ? accumulatedTextRef.current + ' ' + result
         : result;
-      
+
       accumulatedTextRef.current = updatedText;
       setSpeechText(updatedText);
-      
+
       if (onSpeechResult) {
         onSpeechResult(updatedText);
-      }
-      
-      if (isListeningRef.current && !isPausedRef.current) {
+      }      if (isListeningRef.current && !isPausedRef.current) {
         try {
           Voice.start('en-US');
         } catch (err) {
-          console.error('Error restarting voice recognition after results:', err);
+          logger.error(
+            'Error restarting voice recognition after results:',
+            err
+          );
         }
       }
     }
@@ -224,12 +252,11 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
     }
 
     setError(null);
-    
+
     try {
       await Voice.stop();
-    } catch (e) {
-    }
-    
+    } catch (e) {}
+
     if (isPaused) {
       setIsPaused(false);
       isPausedRef.current = false;
@@ -238,10 +265,10 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
       setSpeechText('');
       setRecordingTime(0);
       audioDataRef.current = [];
-      
+
       transcriptionAPI.startTranscription();
     }
-    
+
     setIsListening(true);
     isListeningRef.current = true;
 
@@ -258,7 +285,7 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
   const pauseSpeechToText = async () => {
     setIsPaused(true);
     isPausedRef.current = true;
-    
+
     try {
       await Voice.stop();
     } catch (e) {
@@ -271,7 +298,7 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
     isListeningRef.current = false;
     setIsPaused(false);
     isPausedRef.current = false;
-    
+
     try {
       await Voice.stop();
     } catch (e) {
@@ -283,7 +310,7 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
     if (!isListening) {
       startSpeechToText();
     } else if (isPaused) {
-      startSpeechToText(); 
+      startSpeechToText();
     } else {
       pauseSpeechToText();
     }
@@ -294,25 +321,37 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
       onSaveNote(speechText);
     }
   };
-
   const endRecording = () => {
     stopSpeechToText();
-    
-    transcriptionAPI.stopTranscription()
+
+    transcriptionAPI
+      .stopTranscription()
       .then(() => {
         logger.debug('Transcription ended successfully');
+        logger.debug('Associated Appointment ID:', appointmentId);
+        logger.debug('Associated Record ID:', recordId);
       })
-      .catch((error) => {
+      .catch(error => {
         logger.error('Error ending transcription', error);
       });
-    
+
     if (onSubmit && speechText) {
       logger.debug('Submitting speech text:', speechText);
+      logger.debug('With Appointment ID:', appointmentId);
+      logger.debug('With Record ID:', recordId);
+
       setShowTranscriptModal(true);
       setTimeout(() => {
-        onSubmit(speechText, audioDataRef.current);
+        // Include appointment and record IDs in the submission data
+        const submissionData = {
+          text: speechText,
+          audio: audioDataRef.current,
+          appointmentId,
+          recordId,
+        };
+        onSubmit(speechText, audioDataRef.current, submissionData);
         setShowTranscriptModal(false);
-      }, 4000); 
+      }, 4000);
     }
   };
 
@@ -320,7 +359,7 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
     <View style={styles.container}>
       <View style={styles.patientCard}>
         <Text style={styles.patientCardTitle}>Patient Context</Text>
-        
+
         <View style={styles.patientInfoContainer}>
           <View style={styles.patientInfoRow}>
             <Text style={styles.patientInfoLabel}>Name</Text>
@@ -329,7 +368,7 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
             <Text style={styles.patientInfoLabel}>MRN</Text>
             <Text style={styles.patientInfoLabel}>UID</Text>
           </View>
-          
+
           <View style={styles.patientInfoRow}>
             <Text style={styles.patientInfoValue}>{patientInfo.name}</Text>
             <Text style={styles.patientInfoValue}>{patientInfo.age}</Text>
@@ -339,73 +378,68 @@ const SpeechToText: React.FC<SpeechToTextProps> = ({
           </View>
         </View>
       </View>
-      
+
       {/* Microphone Button and Timer */}
       <View style={styles.microphoneContainer}>
         <TouchableOpacity
           style={styles.micButton}
           onPress={toggleRecording}
-          activeOpacity={0.7}
-        >
-          <Image 
-            source={isListening && !isPaused ? pauseIcon : micIcon} 
-            style={[
-              styles.micImage, 
-            ]} 
+          activeOpacity={0.7}>
+          <Image
+            source={isListening && !isPaused ? pauseIcon : micIcon}
+            style={[styles.micImage]}
             resizeMode="contain"
           />
         </TouchableOpacity>
-        
+
         <Text style={styles.timerText}>{formatTime(recordingTime)}</Text>
-        
+
         {isPaused && (
           <View style={styles.pausedMessageContainer}>
             <View style={styles.errorDot} />
             <Text style={styles.pausedMessageText}>
-              Your recording is paused, click on the above button to resume recording
+              Your recording is paused, click on the above button to resume
+              recording
             </Text>
           </View>
         )}
       </View>
-      
+
       <View style={styles.transcriptionContainer}>
         <Text style={styles.transcriptionTitle}>Live transcription</Text>
-        
-        <ScrollView 
+
+        <ScrollView
           style={styles.transcriptionContent}
-          showsVerticalScrollIndicator={true}
-        >
-          <Text style={styles.transcriptionText}>{speechText || "Tap the microphone button to start recording"}</Text>
+          showsVerticalScrollIndicator={true}>
+          <Text style={styles.transcriptionText}>
+            {speechText || 'Tap the microphone button to start recording'}
+          </Text>
         </ScrollView>
 
         <TouchableOpacity
           style={styles.generateNotesButton}
           onPress={generateNotes}
           activeOpacity={0.7}
-          disabled={!speechText}
-        >
+          disabled={!speechText}>
           <Text style={styles.generateNotesText}>Generate Notes</Text>
         </TouchableOpacity>
       </View>
-      
+
       <View style={styles.actionButtonsContainer}>
         <TouchableOpacity
           style={styles.endRecordingButton}
           onPress={endRecording}
-          activeOpacity={0.7}
-        >
+          activeOpacity={0.7}>
           <Text style={styles.endRecordingText}>End recording</Text>
         </TouchableOpacity>
       </View>
-      
+
       <TranscriptLoadingModal
         visible={showTranscriptModal}
         onRequestClose={() => setShowTranscriptModal(false)}
       />
-      
-      {error ? (
-        <Text style={styles.errorText}>{error}</Text>
-      ) : null}
+
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
     </View>
   );
 };
@@ -498,7 +532,7 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 15,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,

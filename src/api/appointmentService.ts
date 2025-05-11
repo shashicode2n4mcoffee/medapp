@@ -37,6 +37,18 @@ export interface GetAppointmentsParams {
   order_by_desc?: boolean;
 }
 
+export interface CreateRecordRequest {
+  appointment_id: number;
+  start_time: string;
+  content_type: string;
+  file_type: string;
+}
+
+export interface CreateRecordResponse {
+  record_id: number;
+  appointment_id: number;
+}
+
 /**
  * Appointment service to handle all appointment-related API calls
  */
@@ -60,6 +72,16 @@ class AppointmentService {
     const url = `/api/V2/account/appointments/?${queryParams.toString()}`;
     
     return apiClient.get<AppointmentListResponse>(url);
+  }
+
+  /**
+   * Create a new record for an appointment
+   * @param data - Record creation data
+   * @returns Promise with record creation response
+   */
+  async createRecord(data: CreateRecordRequest): Promise<ApiResponse<CreateRecordResponse>> {
+    const url = '/api/V2/account/records/create/';
+    return apiClient.post<CreateRecordResponse>(url, data);
   }
 }
 

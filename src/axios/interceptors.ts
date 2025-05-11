@@ -99,10 +99,9 @@ const setupRequestInterceptor = () => {
       try {
         // Get CSRF token
         const csrfToken = await getCsrfToken();
-        
-        if (csrfToken) {
+          if (csrfToken) {
           // Add CSRF token to headers
-          console.log('CSRF token found:', csrfToken);
+          logger.debug('CSRF token found:', csrfToken);
           // config.headers.set('x-csrftoken', csrfToken);
           
           // For Android, we also need to add it as a cookie header

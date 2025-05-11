@@ -1,14 +1,16 @@
 import { Platform } from 'react-native';
 import Config from 'react-native-config';
+import logger from '../utils/logger';
 
 type Environment = 'development' | 'staging' | 'production';
 
 const logEnvVars = () => {
-  console.log('Environment Variables:');
-  console.log('ENVIRONMENT:', Config.ENVIRONMENT);
-  console.log('API_BASE_URL_DEVELOPMENT:', Config.API_BASE_URL_DEVELOPMENT);
-  console.log('API_BASE_URL_STAGING:', Config.API_BASE_URL_STAGING);
-  console.log('API_BASE_URL_PRODUCTION:', Config.API_BASE_URL_PRODUCTION);
+  logger.info('Environment Variables:', {
+    ENVIRONMENT: Config.ENVIRONMENT,
+    API_BASE_URL_DEVELOPMENT: Config.API_BASE_URL_DEVELOPMENT,
+    API_BASE_URL_STAGING: Config.API_BASE_URL_STAGING,
+    API_BASE_URL_PRODUCTION: Config.API_BASE_URL_PRODUCTION
+  });
 };
 
 if (__DEV__) {
