@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import {View, Text, StyleSheet, Image} from 'react-native';
 
 type AppointmentsScreenProps = {
   onNext: () => void;
@@ -7,7 +7,11 @@ type AppointmentsScreenProps = {
   isLastScreen: boolean;
 };
 
-const AppointmentsScreen = ({ onNext, onSkip, isLastScreen }: AppointmentsScreenProps) => {
+const AppointmentsScreen = ({
+  onNext,
+  onSkip,
+  isLastScreen,
+}: AppointmentsScreenProps) => {
   return (
     <View style={styles.container}>
       <View style={styles.imageContainer}>
@@ -17,11 +21,12 @@ const AppointmentsScreen = ({ onNext, onSkip, isLastScreen }: AppointmentsScreen
           resizeMode="contain"
         />
       </View>
-      
+
       <View style={styles.textContainer}>
         <Text style={styles.title}>Track Appointments Easily</Text>
         <Text style={styles.description}>
-          View and update appointments in just a few taps with our clean, organized interface.
+          View and update appointments in just a few taps with our clean,
+          organized interface.
         </Text>
       </View>
     </View>

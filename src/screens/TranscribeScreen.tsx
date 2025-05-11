@@ -18,14 +18,16 @@ const TranscribeScreen = ({ navigation, route }: TranscribeScreenProps) => {
   const isDarkMode = false;
   const [recognizedText, setRecognizedText] = useState<string>('');
   const [audioData, setAudioData] = useState<any[]>([]);
-  
-  const patientInfo = route.params?.patientInfo || {
+    const patientInfo = route.params?.patientInfo || {
     name: 'George Smith',
     age: '43',
     gender: 'Male',
     mrn: '430897134',
     uid: '430897134'
   };
+  
+  const appointmentId = route.params?.appointmentId;
+  console.log('Appointment ID received:', appointmentId);
   
   const { isSidebarOpen } = useSidebar();
   

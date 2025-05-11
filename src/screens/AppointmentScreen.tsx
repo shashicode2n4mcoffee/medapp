@@ -221,7 +221,9 @@ const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
           </Text>
           <Text style={styles.appointmentTime}>{item.time}</Text>
         </View>
-        <TouchableOpacity style={styles.voiceIconContainer}>
+        <TouchableOpacity
+          style={styles.voiceIconContainer}
+          onPress={() => handleMicPress({appointmentId: item.id})}>
           <Image source={micIcon} style={styles.voiceIcon} />
         </TouchableOpacity>
       </View>
@@ -273,6 +275,19 @@ const AppointmentScreen = ({navigation}: AppointmentScreenProps) => {
     }).length;
 
     return count;
+  };
+  // Interface for handle mic press function parameters
+  interface MicPressParams {
+    appointmentId: string;
+  }
+
+  const handleMicPress = ({appointmentId}: MicPressParams): void => {
+    // Navigate to transcribe screen with appointment ID as parameter
+    if (navigation) {
+      navigation.navigate('Transcribe', {appointmentId});
+    } else {
+      console.warn('Navigation prop is not available');
+    }
   };
 
   return (
