@@ -16,12 +16,18 @@ const axiosInstance = axios.create({
 
 axiosInstance.interceptors.request.use(
   (config) => {
-    const url = (config.baseURL || '') + (config.url || '');
+    const fullUrl = (config.baseURL || '') + (config.url || '');
     
     logger.group('API Request', false, () => {
-      logger.debug('API Request URL', url);
+      logger.info('Full API URL:', fullUrl);
+      logger.debug('Base URL:', config.baseURL);
+      logger.debug('Endpoint:', config.url);
+      logger.debug('Method:', config.method?.toUpperCase());
+      if (config.params) {
+        logger.debug('Query Parameters:', config.params);
+      }
       if (config.data) {
-        logger.debug('Request Payload', config.data);
+        logger.debug('Request Payload:', config.data);
       }
     });
     

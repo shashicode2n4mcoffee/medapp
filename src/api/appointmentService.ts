@@ -1,4 +1,5 @@
 import apiClient, { ApiResponse } from './apiClient';
+import logger from '../utils/logger';
 
 // Define appointment types
 export interface AppointmentMetadata {
@@ -49,6 +50,25 @@ export interface CreateRecordResponse {
   appointment_id: number;
 }
 
+// Define the interfaces for the signed URL API
+export interface SignedUrlRequest {
+  record_id: number;
+}
+
+export interface SignedUrlResponse {
+  url: string;
+  fields: {
+    'Content-Type': string;
+    key: string;
+    AWSAccessKeyId: string;
+    'x-amz-security-token': string;
+    policy: string;
+    signature: string;
+  };
+  record_id: number;
+  expiration: string;
+}
+
 /**
  * Appointment service to handle all appointment-related API calls
  */
@@ -81,6 +101,35 @@ class AppointmentService {
   async createRecord(data: CreateRecordRequest): Promise<ApiResponse<CreateRecordResponse>> {
     const url = '/api/V2/account/records/create/';
     return apiClient.post<CreateRecordResponse>(url, data);
+  }
+  /**
+   * Get a signed URL for uploading audio recording
+   * @param data - Request with record_id
+   * @returns Promise with signed URL response
+   */
+  async getSignedUrl(data: SignedUrlRequest): Promise<ApiResponse<SignedUrlResponse>> {
+    const url = '/api/V2/account/records/signed_url/';
+    
+    // Log the request payload
+    if (logger) {
+      logger.info('Getting signed URL with payload:', {
+        endpoint: '/api/V2/account/records/signed_url/',
+        record_id: data.record_id,
+      });
+    }
+    
+    const response = await apiClient.post<SignedUrlResponse>(url, data);
+    
+    // Log the response
+    if (logger && response.success) {
+      logger.debug('Successfully received signed URL', {
+        record_id: data.record_id,
+        url_expiration: response.data?.expiration,
+        has_fields: !!response.data?.fields,
+      });
+    }
+    
+    return response;
   }
 
   /**

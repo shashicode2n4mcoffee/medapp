@@ -28,7 +28,6 @@ const useTranscriptionAPI = ({
       }
     };
   }, []);
-
   const startTranscription = (initialAudioData?: any[]) => {
     if (initialAudioData) {
       audioDataRef.current = initialAudioData;
@@ -36,35 +35,78 @@ const useTranscriptionAPI = ({
     
     setIsTranscribing(true);
     
+    logger.info('Starting transcription process', {
+      hook: 'useTranscriptionAPI',
+      method: 'startTranscription',
+      record_id: recordId,
+      initial_data_length: initialAudioData?.length || 0,
+      interval_ms: intervalMilliseconds
+    });
+    
     sendAudioChunk();
     
     intervalRef.current = setInterval(() => {
+      logger.debug('Sending periodic audio chunk via interval', {
+        hook: 'useTranscriptionAPI',
+        record_id: recordId,
+        sequence_id: sequenceId,
+        data_length: audioDataRef.current.length
+      });
       sendAudioChunk();
     }, intervalMilliseconds);
-    
-    logger.debug('Started audio chunk transcription', { 
-      recordId, 
-      intervalMilliseconds 
+  };  const stopTranscription = async (url?: string) => {
+    logger.info('Stopping transcription process', {
+      hook: 'useTranscriptionAPI',
+      method: 'stopTranscription',
+      record_id: recordId,
+      has_url_context: !!url,
+      current_sequence_id: sequenceId,
+      accumulated_data_points: audioDataRef.current.length
     });
-  };
-
-  const stopTranscription = async () => {
+    
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
+      logger.debug('Cleared transcription interval timer', {
+        hook: 'useTranscriptionAPI',
+        record_id: recordId
+      });
     }
     
     setIsTranscribing(false);
     
     try {
-      const response = await transcriptionService.endTranscription(recordId);
+      logger.info('Calling endTranscription API', {
+        hook: 'useTranscriptionAPI',
+        method: 'stopTranscription',
+        record_id: recordId,
+        endpoint: '/api/V2/account/records/end_transcription',
+        has_url_context: !!url
+      });
+      
+      const response = await transcriptionService.endTranscription(recordId, url);
+      
+      logger.info('Successfully ended transcription', {
+        hook: 'useTranscriptionAPI',
+        method: 'stopTranscription',
+        record_id: recordId,
+        response_status: 'success'
+      });
       
       if (onTranscriptionComplete) {
         onTranscriptionComplete(response);
       }
       
       return response;
-    } catch (error) {
+    } catch (error: any) {
+      logger.error('Failed to end transcription', {
+        hook: 'useTranscriptionAPI',
+        method: 'stopTranscription',
+        record_id: recordId,
+        error: error?.message || 'Unknown error',
+        has_url_context: !!url
+      });
+      
       if (onError) {
         onError(error);
       }

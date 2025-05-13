@@ -25,14 +25,22 @@ export const sendAudioChunkForTranscription = async (recordId: number, sequenceI
       type: 'application/json',
       lastModified: Date.now()
     });
-    
-    // Append the required fields to the FormData
+      // Append the required fields to the FormData
     formData.append('audio', audioBlob);
     formData.append('sequence_id', sequenceId.toString());
     formData.append('record_id', recordId.toString());
     
+    // Log the payload details
+    logger.info('Sending audio chunk with payload:', {
+      endpoint: '/api/V2/account/records/transcribe_audio_chunk/',
+      record_id: recordId,
+      sequence_id: sequenceId,
+      audio_data_length: audioData.length,
+      audio_blob_size: audioBlob.size,
+    });
+    
     // Make the API call with FormData
-    const response = await apiClient.post('/api/V2/account/records/transcribe_audio_chunk', formData, {
+    const response = await apiClient.post('/api/V2/account/records/transcribe_audio_chunk/', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       }
@@ -58,12 +66,25 @@ export const sendAudioChunkForTranscription = async (recordId: number, sequenceI
  * Ends a transcription session
  * 
  * @param recordId - ID of the record being transcribed
+ * @param url - Optional URL from the signed URL response to include in context
  * @returns The response data from ending the transcription
  */
-export const endTranscription = async (recordId: number) => {
-  try {
-    const formData = new FormData();
+export const endTranscription = async (recordId: number, url?: string) => {
+  try {    const formData = new FormData();
     formData.append('record_id', recordId.toString());
+    
+    // If URL context is provided, include it in the request
+    if (url) {
+      formData.append('url', url);
+    }
+    
+    // Log the payload details
+    logger.info('Ending transcription with payload:', {
+      endpoint: '/api/V2/account/records/end_transcription',
+      record_id: recordId,
+      has_url_context: !!url,
+      url: url ? url.substring(0, 50) + '...' : undefined // Truncate URL for logging
+    });
     
     const response = await apiClient.post('/api/V2/account/records/end_transcription', formData, {
       headers: {
@@ -71,7 +92,7 @@ export const endTranscription = async (recordId: number) => {
       }
     });
     
-    logger.debug('Successfully ended transcription', { recordId });
+    logger.debug('Successfully ended transcription', { recordId, url });
     return response.data;
   } catch (error) {
     logger.error('Error ending transcription', error);

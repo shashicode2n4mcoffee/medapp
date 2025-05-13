@@ -6,8 +6,16 @@ import {
   GetAppointmentsParams,
   CreateRecordRequest,
   CreateRecordResponse,
+  SignedUrlRequest,
+  SignedUrlResponse,
 } from '../../api/appointmentService';
+import apiClient from '../../api/apiClient';
 import {format} from 'date-fns';
+import logger from '../../utils/logger';
+
+interface TranscribeAudioChunkResponse {
+  status: string;
+}
 
 interface AppointmentsState {
   appointments: Appointment[];
@@ -17,6 +25,8 @@ interface AppointmentsState {
   currentParams: GetAppointmentsParams;
   record: CreateRecordResponse | null;
   selectedAppointmentDetail: Appointment | null;
+  signedUrlResponse: SignedUrlResponse | null;
+  transcribeAudioChunk: TranscribeAudioChunkResponse | null;
 }
 
 // Helper function to get today's date in YYYY-MM-DD format
@@ -43,9 +53,11 @@ const initialState: AppointmentsState = {
     limit: 30,
     offset: 0,
     order_by_desc: true,
-  },
+  },  
   record: null,
   selectedAppointmentDetail: null,
+  signedUrlResponse: null,
+  transcribeAudioChunk: null,
 };
 
 export const fetchAppointments = createAsyncThunk<
@@ -140,6 +152,115 @@ export const fetchAppointmentDetail = createAsyncThunk<
   }
 });
 
+export const getAudioRecordingSignedUrl = createAsyncThunk<
+  SignedUrlResponse,
+  SignedUrlRequest,
+  {rejectValue: string}
+>('appointments/getAudioRecordingSignedUrl', async (data, {rejectWithValue}) => {  try {
+    // Log the Redux action dispatch
+    logger.info('Dispatching getAudioRecordingSignedUrl action:', {
+      action: 'getAudioRecordingSignedUrl',
+      record_id: data.record_id
+    });
+    
+    const response = await appointmentService.getSignedUrl(data);
+
+    if (!response.success || !response.data) {
+      logger.error('Failed to get signed URL', {
+        action: 'getAudioRecordingSignedUrl',
+        record_id: data.record_id,
+        error: response.error
+      });
+      return rejectWithValue(
+        response.error?.message || 'Failed to get signed URL',
+      );
+    }
+    
+    logger.info('Successfully completed getAudioRecordingSignedUrl action', {
+      action: 'getAudioRecordingSignedUrl',
+      record_id: data.record_id,
+      has_url: !!response.data.url,
+      expiration: response.data.expiration
+    });
+
+    return response.data;
+  } catch (error: any) {
+    return rejectWithValue(
+      error.message || 'An unknown error occurred while getting signed URL',
+    );
+  }
+});
+
+interface TranscribeAudioChunkRequest {
+  recordId: number;
+  sequenceId: number;
+  audioData: any[];
+}
+
+export const transcribeAudioChunkAction = createAsyncThunk<
+  TranscribeAudioChunkResponse,
+  TranscribeAudioChunkRequest,
+  {rejectValue: string}
+>('appointments/transcribeAudioChunk', async (data, {rejectWithValue}) => {
+  try {
+    // Create a FormData object for the request
+    const formData = new FormData();
+    
+    // Convert audio data to appropriate format
+    const audioBlob = new Blob([JSON.stringify(data.audioData)], { 
+      type: 'application/json',
+      lastModified: Date.now()
+    });
+      // Append the required fields to the FormData
+    formData.append('audio', audioBlob);
+    formData.append('sequence_id', data.sequenceId.toString());
+    formData.append('record_id', data.recordId.toString());
+    
+    // Log the payload details from Redux action
+    logger.info('Dispatching transcribeAudioChunk with payload:', {
+      action: 'transcribeAudioChunkAction',
+      endpoint: '/api/V2/account/records/transcribe_audio_chunk/',
+      record_id: data.recordId,
+      sequence_id: data.sequenceId,
+      audio_data_length: data.audioData.length,
+      audio_blob_size: audioBlob.size,
+    });
+    
+    // Make the API call with FormData
+    const response = await apiClient.post('/api/V2/account/records/transcribe_audio_chunk/', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      }
+    });    if (!response.data) {
+      logger.error('Failed to transcribe audio chunk - empty response', {
+        action: 'transcribeAudioChunkAction',
+        record_id: data.recordId,
+        sequence_id: data.sequenceId
+      });
+      return rejectWithValue('Failed to transcribe audio chunk');
+    }
+
+    logger.info('Successfully completed transcribeAudioChunk action', {
+      action: 'transcribeAudioChunkAction',
+      record_id: data.recordId,
+      sequence_id: data.sequenceId,
+      status: response.data.status || 'unknown'
+    });
+
+    return response.data;
+  } catch (error: any) {
+    logger.error('Exception in transcribeAudioChunkAction', {
+      action: 'transcribeAudioChunkAction',
+      record_id: data.recordId,
+      sequence_id: data.sequenceId,
+      error: error.message || 'Unknown error'
+    });
+    return rejectWithValue(
+      error.message || 'An unknown error occurred while transcribing audio chunk'
+    );
+  }
+});
+
 const appointmentsSlice = createSlice({
   name: 'appointments',
   initialState,
@@ -209,11 +330,45 @@ const appointmentsSlice = createSlice({
           state.selectedAppointmentDetail = action.payload;
           state.error = null;
         },
-      )
-      .addCase(fetchAppointmentDetail.rejected, (state, action) => {
+      )      .addCase(fetchAppointmentDetail.rejected, (state, action) => {
         state.loading = false;
         state.error =
           (action.payload as string) || 'An error occurred fetching appointment details';
+      })
+      // Add cases for getAudioRecordingSignedUrl
+      .addCase(getAudioRecordingSignedUrl.pending, state => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(
+        getAudioRecordingSignedUrl.fulfilled,
+        (state, action: PayloadAction<SignedUrlResponse>) => {
+          state.loading = false;
+          state.signedUrlResponse = action.payload;
+          state.error = null;
+        },
+      )      .addCase(getAudioRecordingSignedUrl.rejected, (state, action) => {
+        state.loading = false;
+        state.error =
+          (action.payload as string) || 'An error occurred getting signed URL';
+      })
+      // Add cases for transcribeAudioChunk
+      .addCase(transcribeAudioChunkAction.pending, state => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(
+        transcribeAudioChunkAction.fulfilled,
+        (state, action: PayloadAction<TranscribeAudioChunkResponse>) => {
+          state.loading = false;
+          state.transcribeAudioChunk = action.payload;
+          state.error = null;
+        },
+      )
+      .addCase(transcribeAudioChunkAction.rejected, (state, action) => {
+        state.loading = false;
+        state.error =
+          (action.payload as string) || 'An error occurred transcribing audio chunk';
       });
   },
 });
