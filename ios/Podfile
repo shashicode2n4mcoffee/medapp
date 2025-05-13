@@ -5,7 +5,11 @@ require Pod::Executable.execute_command('node', ['-p',
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
-platform :ios, min_ios_version_supported
+# Force a specific iOS version for compatibility
+platform :ios, '15.1'
+
+# Disable the new architecture
+ENV['RCT_NEW_ARCH_ENABLED'] = '0'
 prepare_react_native_project!
 
 linkage = ENV['USE_FRAMEWORKS']
@@ -34,5 +38,21 @@ target 'AIApp' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+    
+    # Fix for 'always_out_of_date' error
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
+      end
+      
+      # Remove script phases with 'always_out_of_date' option which isn't supported in older CocoaPods
+      if target.respond_to?(:build_phases) && target.build_phases.respond_to?(:each)
+        target.build_phases.each do |phase|
+          if phase.respond_to?(:name) && phase.respond_to?(:type) && phase.type == :shell_script
+            phase.shell_script = phase.shell_script.gsub(/--always-out-of-date/, '')
+          end
+        end
+      end
+    end
   end
 end
